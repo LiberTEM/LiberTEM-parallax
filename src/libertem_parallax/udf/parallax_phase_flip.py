@@ -215,8 +215,8 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
             self.scan_gpts[1] * upsampling_factor,
         )
 
-    def process_tile(self, tile):
-        frames = tile.data  # shape (T, sy, sx)
+    def process_partition(self, partition):
+        frames = partition.data  # shape (T, sy, sx)
 
         # multiply signal coordinates by upsampling factor
         upsampling_factor = self.params.upsampling_factor

@@ -180,8 +180,8 @@ class ParallaxUDF(BaseParallaxUDF):
             self.scan_gpts[1] * upsampling_factor,
         )
 
-    def process_tile(self, tile):
-        frames = tile.data
+    def process_partition(self, partition):
+        frames = partition.data
 
         # multiply signal coordinates by upsampling factor
         upsampling_factor = self.params.upsampling_factor
