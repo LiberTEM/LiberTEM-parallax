@@ -99,3 +99,14 @@ def quadratic_aberration_cartesian_gradients(
     dchi_dy = sin_phi * dchi_dk + cos_phi * dchi_dphi
 
     return dchi_dx, dchi_dy
+
+
+def suppress_nyquist_frequency(array: NDArray):
+    """
+    Zeros Nyquist frequencies of a real-space array.
+    """
+    F = np.fft.fft2(array)
+    Nx, Ny = F.shape
+    F[Nx // 2, :] = 0.0
+    F[:, Ny // 2] = 0.0
+    return np.fft.ifft2(F).real
