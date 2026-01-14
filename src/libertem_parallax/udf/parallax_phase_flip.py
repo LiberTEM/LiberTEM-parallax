@@ -1,15 +1,14 @@
 import numba
 import numpy as np
-from libertem.udf import UDF
 
 from libertem_parallax.utils import (
-    electron_wavelength,
     polar_coordinates,
     prepare_grouped_phase_flipping_kernel,
-    quadratic_aberration_cartesian_gradients,
     quadratic_aberration_surface,
     spatial_frequencies,
 )
+
+from .base import BaseParallaxUDF
 
 
 @numba.njit(fastmath=True, nogil=True, cache=True)
@@ -71,7 +70,7 @@ def parallax_phase_flip_accumulate_cpu(
             out.flat[idx] += vals[u]
 
 
-class ParallaxPhaseFlipUDF(UDF):
+class ParallaxPhaseFlipUDF(BaseParallaxUDF):
     """
     User-Defined Function for streaming phase-flipped parallax reconstruction.
 
@@ -142,99 +141,43 @@ class ParallaxPhaseFlipUDF(UDF):
             Integer upsampling factor for the scan grid.
         """
 
-        # ---- Sampling ----
-        wavelength = electron_wavelength(energy)
-
-        if reciprocal_sampling is not None and angular_sampling is not None:
-            raise ValueError(
-                "Specify only one of `reciprocal_sampling` or `angular_sampling`, not both."
-            )
-
-        if reciprocal_sampling is None and angular_sampling is None:
-            raise ValueError(
-                "One of `reciprocal_sampling` or `angular_sampling` must be specified."
-            )
-
-        # Canonicalize to reciprocal sampling
-        if reciprocal_sampling is None:
-            assert angular_sampling is not None
-            reciprocal_sampling = (
-                angular_sampling[0] / wavelength / 1e3,
-                angular_sampling[1] / wavelength / 1e3,
-            )
-
-        ny, nx = gpts
-        sampling = (
-            1.0 / reciprocal_sampling[0] / ny,
-            1.0 / reciprocal_sampling[1] / nx,
+        pre = cls.preprocess_geometry(
+            gpts,
+            scan_gpts,
+            scan_sampling,
+            energy,
+            semiangle_cutoff,
+            reciprocal_sampling,
+            angular_sampling,
+            aberration_coefs,
+            rotation_angle,
+            upsampling_factor,
         )
 
-        upsampled_gpts = (
-            scan_gpts[0] * upsampling_factor,
-            scan_gpts[1] * upsampling_factor,
-        )
-
-        upsampled_sampling = (
-            scan_sampling[0] / upsampling_factor,
-            scan_sampling[1] / upsampling_factor,
-        )
-
-        # ---- Parallax shifts ----
         if aberration_coefs is None:
             aberration_coefs = {}
 
-        kxa, kya = spatial_frequencies(
-            gpts,
-            sampling,
-            rotation_angle=rotation_angle,
-        )
-        k, phi = polar_coordinates(kxa, kya)
-
-        # ---- BF indices ----
-        bf_mask = k * wavelength * 1e3 <= semiangle_cutoff
-        inds_i, inds_j = np.where(bf_mask)
-
-        inds_i_fft = (inds_i - ny // 2) % ny
-        inds_j_fft = (inds_j - nx // 2) % nx
-        bf_flat_inds = (inds_i_fft * nx + inds_j_fft).astype(np.int32)
-
-        dx, dy = quadratic_aberration_cartesian_gradients(
-            k * wavelength,
-            phi,
-            aberration_coefs,
-        )
-
-        grad_k = np.stack(
-            (dx[inds_i, inds_j], dy[inds_i, inds_j]),
-            axis=-1,
-        )
-
-        shifts = np.round(grad_k / (2 * np.pi) / upsampled_sampling).astype(np.int32)
-
-        qxa, qya = spatial_frequencies(
-            upsampled_gpts,
-            upsampled_sampling,
-        )
+        # Phase-flip kernel
+        qxa, qya = spatial_frequencies(pre["upsampled_gpts"], pre["sampling"])
         q, theta = polar_coordinates(qxa, qya)
         chi_q = quadratic_aberration_surface(
-            q * wavelength,
+            q * pre["wavelength"],
             theta,
-            wavelength,
+            pre["wavelength"],
             aberration_coefs=aberration_coefs,
         )
         sign_sin_chi_q = np.sign(np.sin(chi_q))
-
         Nx, Ny = sign_sin_chi_q.shape
         sign_sin_chi_q[Nx // 2, :] = 0.0
         sign_sin_chi_q[:, Ny // 2] = 0.0
         kernel = np.fft.ifft2(sign_sin_chi_q).real
 
         unique_offsets, grouped_kernel = prepare_grouped_phase_flipping_kernel(
-            kernel, shifts, upsampled_gpts
+            kernel, pre["shifts"], pre["upsampled_gpts"]
         )
 
         return cls(
-            bf_flat_inds=bf_flat_inds,
+            bf_flat_inds=pre["bf_flat_inds"],
             unique_offsets=unique_offsets,
             grouped_kernel=grouped_kernel,
             upsampling_factor=upsampling_factor,

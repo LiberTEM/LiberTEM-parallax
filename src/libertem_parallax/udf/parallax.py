@@ -1,14 +1,11 @@
 import numba
 import numpy as np
-from libertem.udf import UDF
 
 from libertem_parallax.utils import (
-    electron_wavelength,
-    polar_coordinates,
-    quadratic_aberration_cartesian_gradients,
-    spatial_frequencies,
     suppress_nyquist_frequency,
 )
+
+from .base import BaseParallaxUDF
 
 
 @numba.njit(fastmath=True, nogil=True, cache=True)
@@ -64,7 +61,7 @@ def parallax_accumulate_cpu(
             out[oy, ox] += val
 
 
-class ParallaxUDF(UDF):
+class ParallaxUDF(BaseParallaxUDF):
     """
     User-Defined Function for streaming parallax reconstruction.
 
@@ -137,73 +134,22 @@ class ParallaxUDF(UDF):
             Whether to suppress Nyquist-frequency artifacts at merge time.
         """
 
-        # ---- Sampling ----
-        wavelength = electron_wavelength(energy)
-
-        if reciprocal_sampling is not None and angular_sampling is not None:
-            raise ValueError(
-                "Specify only one of `reciprocal_sampling` or `angular_sampling`, not both."
-            )
-
-        if reciprocal_sampling is None and angular_sampling is None:
-            raise ValueError(
-                "One of `reciprocal_sampling` or `angular_sampling` must be specified."
-            )
-
-        # Canonicalize to reciprocal sampling
-        if reciprocal_sampling is None:
-            assert angular_sampling is not None
-            reciprocal_sampling = (
-                angular_sampling[0] / wavelength / 1e3,
-                angular_sampling[1] / wavelength / 1e3,
-            )
-
-        ny, nx = gpts
-        sampling = (
-            1.0 / reciprocal_sampling[0] / ny,
-            1.0 / reciprocal_sampling[1] / nx,
-        )
-
-        upsampled_sampling = (
-            scan_sampling[0] / upsampling_factor,
-            scan_sampling[1] / upsampling_factor,
-        )
-
-        # ---- Parallax shifts ----
-        if aberration_coefs is None:
-            aberration_coefs = {}
-
-        kxa, kya = spatial_frequencies(
+        pre = cls.preprocess_geometry(
             gpts,
-            sampling,
-            rotation_angle=rotation_angle,
-        )
-        k, phi = polar_coordinates(kxa, kya)
-
-        # ---- BF indices ----
-        bf_mask = k * wavelength * 1e3 <= semiangle_cutoff
-        inds_i, inds_j = np.where(bf_mask)
-
-        inds_i_fft = (inds_i - ny // 2) % ny
-        inds_j_fft = (inds_j - nx // 2) % nx
-        bf_flat_inds = (inds_i_fft * nx + inds_j_fft).astype(np.int32)
-
-        dx, dy = quadratic_aberration_cartesian_gradients(
-            k * wavelength,
-            phi,
+            scan_gpts,
+            scan_sampling,
+            energy,
+            semiangle_cutoff,
+            reciprocal_sampling,
+            angular_sampling,
             aberration_coefs,
+            rotation_angle,
+            upsampling_factor,
         )
-
-        grad_k = np.stack(
-            (dx[inds_i, inds_j], dy[inds_i, inds_j]),
-            axis=-1,
-        )
-
-        shifts = np.round(grad_k / (2 * np.pi) / upsampled_sampling).astype(np.int32)
 
         return cls(
-            bf_flat_inds=bf_flat_inds,
-            shifts=shifts,
+            bf_flat_inds=pre["bf_flat_inds"],
+            shifts=pre["shifts"],
             upsampling_factor=upsampling_factor,
             suppress_Nyquist_noise=suppress_Nyquist_noise,
             **kwargs,
