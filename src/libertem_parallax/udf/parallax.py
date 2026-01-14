@@ -148,8 +148,8 @@ class ParallaxUDF(BaseParallaxUDF):
         )
 
         return cls(
-            bf_flat_inds=pre["bf_flat_inds"],
-            shifts=pre["shifts"],
+            bf_flat_inds=pre.bf_flat_inds,
+            shifts=pre.shifts,
             upsampling_factor=upsampling_factor,
             suppress_Nyquist_noise=suppress_Nyquist_noise,
             **kwargs,

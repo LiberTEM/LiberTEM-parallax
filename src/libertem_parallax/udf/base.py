@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import numpy as np
 from libertem.udf import UDF
 
@@ -7,6 +9,15 @@ from libertem_parallax.utils import (
     quadratic_aberration_cartesian_gradients,
     spatial_frequencies,
 )
+
+
+@dataclass(frozen=True)
+class PreprocessedGeometry:
+    bf_flat_inds: np.ndarray
+    shifts: np.ndarray
+    sampling: tuple[float, float]
+    wavelength: float
+    upsampled_gpts: tuple[int, int]
 
 
 class BaseParallaxUDF(UDF):
@@ -135,7 +146,7 @@ class BaseParallaxUDF(UDF):
 
         shifts = np.round(grad_k / (2 * np.pi) / upsampled_sampling).astype(np.int32)
 
-        return dict(
+        return PreprocessedGeometry(
             bf_flat_inds=bf_flat_inds,
             shifts=shifts,
             sampling=sampling,
