@@ -1,3 +1,9 @@
+# This file contains code adapted from the quantEM project
+# (https://github.com/electronmicroscopy/quantem).
+#
+# Original code licensed under MIT license.
+# Modifications have been made for use in libertem-parallax.
+
 import numpy as np
 from numpy.typing import NDArray
 
