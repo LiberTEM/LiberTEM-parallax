@@ -217,7 +217,10 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
 
     def process_tile(self, tile):
         frames = tile.data  # shape (T, sy, sx)
-        coords = self.meta.coordinates  # shape (T, 2)
+
+        # multiply signal coordinates by upsampling factor
+        upsampling_factor = self.params.upsampling_factor
+        coords = self.meta.coordinates * upsampling_factor
 
         bf_flat_inds = np.asarray(self.params.bf_flat_inds)
         bf_rows = bf_flat_inds // self.gpts[0]
