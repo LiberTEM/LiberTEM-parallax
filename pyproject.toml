@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "libertem-parallax"
+version = "0.1.0"
+description = "Parallax-based UDFs for LiberTEM"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Georgios Varnavides", email = "gvarnavi@gmail.com" },
+]
+requires-python = ">=3.11"
+
+dependencies = [
+    "libertem>=0.15.2",
+]
+
+[dependency-groups]
+test = [
+    "pytest>=9.0.2",
+    # "quantem>=0.1.7",
+]
+
+dev = [
+  { include-group = "test" },
+  "jupyterlab>=4.5.2",
+  "pre-commit>=4.5.1",
+  "ruff>=0.14.11",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/libertem_parallax"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+  "E",  # pycodestyle
+  "F",  # pyflakes
+  "I",  # isort
+  "B",  # bugbear
+  "UP", # pyupgrade
+]
+ignore = [
+  "E501", # handled by formatter
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
