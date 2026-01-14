@@ -15,9 +15,9 @@ from libertem_parallax.utils import (
 class PreprocessedGeometry:
     bf_flat_inds: np.ndarray
     shifts: np.ndarray
-    sampling: tuple[float, float]
     wavelength: float
     upsampled_gpts: tuple[int, int]
+    upsampled_sampling: tuple[float, float]
 
 
 class BaseParallaxUDF(UDF):
@@ -149,7 +149,7 @@ class BaseParallaxUDF(UDF):
         return PreprocessedGeometry(
             bf_flat_inds=bf_flat_inds,
             shifts=shifts,
-            sampling=sampling,
             wavelength=wavelength,
             upsampled_gpts=upsampled_gpts,
+            upsampled_sampling=upsampled_sampling,
         )

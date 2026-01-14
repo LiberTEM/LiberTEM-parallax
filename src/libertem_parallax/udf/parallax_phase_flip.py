@@ -157,13 +157,19 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
         if aberration_coefs is None:
             aberration_coefs = {}
 
+        bf_flat_inds = pre.bf_flat_inds
+        shifts = pre.shifts
+        wavelength = pre.wavelength
+        upsampled_gpts = pre.upsampled_gpts
+        upsampled_sampling = pre.upsampled_sampling
+
         # Phase-flip kernel
-        qxa, qya = spatial_frequencies(pre.upsampled_gpts, pre.sampling)
+        qxa, qya = spatial_frequencies(upsampled_gpts, upsampled_sampling)
         q, theta = polar_coordinates(qxa, qya)
         chi_q = quadratic_aberration_surface(
-            q * pre.wavelength,
+            q * wavelength,
             theta,
-            pre.wavelength,
+            wavelength,
             aberration_coefs=aberration_coefs,
         )
         sign_sin_chi_q = np.sign(np.sin(chi_q))
@@ -173,11 +179,11 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
         kernel = np.fft.ifft2(sign_sin_chi_q).real
 
         unique_offsets, grouped_kernel = prepare_grouped_phase_flipping_kernel(
-            kernel, pre.shifts, pre.upsampled_gpts
+            kernel, shifts, upsampled_gpts
         )
 
         return cls(
-            bf_flat_inds=pre.bf_flat_inds,
+            bf_flat_inds=bf_flat_inds,
             unique_offsets=unique_offsets,
             grouped_kernel=grouped_kernel,
             upsampling_factor=upsampling_factor,
