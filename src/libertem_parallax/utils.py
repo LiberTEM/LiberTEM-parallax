@@ -110,3 +110,58 @@ def suppress_nyquist_frequency(array: NDArray):
     F[Nx // 2, :] = 0.0
     F[:, Ny // 2] = 0.0
     return np.fft.ifft2(F).real
+
+
+def prepare_grouped_phase_flipping_kernel(H, s_m_up, upsampled_gpts):
+    """
+    Prepare the phase-flip kernel offsets and weights in NumPy.
+    Parameters
+    ----------
+    H : np.ndarray, shape (h, w)
+        Base kernel.
+    s_m_up : np.ndarray, shape (M, 2)
+        Up-sampled shifts for M BF pixels, [y, x].
+    upsampled_gpts : tuple[int, int]
+        (Ny, Nx) real-space grid size
+    Returns
+    -------
+    unique_offsets : np.ndarray[int64], shape (U,)
+        Flattened offsets for scatter-add.
+    K : np.ndarray[float64], shape (U, M)
+        Phase-flip weights for each unique offset and BF pixel.
+    """
+    Ny, Nx = upsampled_gpts
+    h, w = H.shape
+    M = s_m_up.shape[0]
+    L0 = h * w
+
+    # kernel grid
+    dy = np.arange(h)
+    dx = np.arange(w)
+    dy_grid = np.repeat(dy, w)
+    dx_grid = np.tile(dx, h)
+
+    # repeat for M BF pixels
+    dy_rep = np.tile(dy_grid, M)
+    dx_rep = np.tile(dx_grid, M)
+
+    # shifts repeated
+    s_my = np.repeat(s_m_up[:, 0], L0)
+    s_mx = np.repeat(s_m_up[:, 1], L0)
+
+    # compute flattened offsets
+    offsets = (dy_rep + s_my) * Nx + (dx_rep + s_mx)
+
+    # find unique offsets and inverse indices
+    unique_offsets, inv = np.unique(offsets, return_inverse=True)
+    U = unique_offsets.size
+
+    # build grouped kernel
+    H_flat = H.ravel()
+    H_all = np.tile(H_flat, M)
+    m_idx = np.repeat(np.arange(M), L0)
+
+    K = np.zeros((U, M), dtype=H.dtype)
+    np.add.at(K, (inv, m_idx), H_all)  # accumulate values
+
+    return unique_offsets.astype(np.int64), K
