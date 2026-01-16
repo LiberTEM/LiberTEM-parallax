@@ -60,7 +60,7 @@ def quadratic_aberration_surface(
 ) -> NDArray:
     """
     Evaluates the quadratic part of the aberration surface on a polar grid of angular frequencies.
-    Uses the same polar coefficients conventions as quantem and abTEM:
+    Uses the same polar coefficients conventions as abTEM:
     https://abtem.readthedocs.io/en/latest/user_guide/walkthrough/contrast_transfer_function.html#phase-aberrations
     """
     C10 = aberration_coefs.get("C10", 0.0)

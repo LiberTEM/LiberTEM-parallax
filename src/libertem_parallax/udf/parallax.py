@@ -124,7 +124,8 @@ class ParallaxUDF(BaseParallaxUDF):
         angular_sampling
             Angular sampling in mrad (convenience alternative).
         aberration_coefs
-            Polar aberration coefficients dictionary.
+            Polar aberration coefficients in Angstroms and radians using abTEM conventions:
+            https://abtem.readthedocs.io/en/latest/user_guide/walkthrough/contrast_transfer_function.html#phase-aberrations
         rotation_angle
             Optional rotation of reciprocal coordinates, in radians.
         upsampling_factor
