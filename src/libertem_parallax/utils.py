@@ -1,7 +1,30 @@
 # This file contains code adapted from the quantEM project
-# (https://github.com/electronmicroscopy/quantem).
+#   https://github.com/electronmicroscopy/quantem.
 #
-# Original code licensed under MIT license.
+#
+# Original license:
+#     MIT License
+
+#     Copyright (c) 2025 ophusgroup
+
+#     Permission is hereby granted, free of charge, to any person obtaining a copy
+#     of this software and associated documentation files (the "Software"), to deal
+#     in the Software without restriction, including without limitation the rights
+#     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#     copies of the Software, and to permit persons to whom the Software is
+#     furnished to do so, subject to the following conditions:
+
+#     The above copyright notice and this permission notice shall be included in all
+#     copies or substantial portions of the Software.
+
+#     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#     AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#     SOFTWARE.
+#
 # Modifications have been made for use in libertem-parallax.
 
 import numpy as np
@@ -11,6 +34,8 @@ from numpy.typing import NDArray
 def electron_wavelength(energy: float) -> float:
     """
     Returns the relativistic electron wavelength in Angstroms.
+    Adapted from:
+        https://github.com/electronmicroscopy/quantem/blob/dd7f29a0724eefd71fac8550fc757cbe9c7a8a74/src/quantem/core/utils/utils.py#L97
     """
     m = 9.109383e-31
     e = 1.602177e-19
@@ -28,6 +53,8 @@ def spatial_frequencies(
 ) -> tuple[NDArray, NDArray]:
     """
     Returns (optionally rotated) corner-centered spatial frequencies on a grid.
+    Adapted from:
+        https://github.com/electronmicroscopy/quantem/blob/dd7f29a0724eefd71fac8550fc757cbe9c7a8a74/src/quantem/diffractive_imaging/complex_probe.py#L392
 
     Rotation convention
     -------------------
@@ -83,6 +110,8 @@ def spatial_frequencies(
 def polar_coordinates(kx: NDArray, ky: NDArray) -> tuple[NDArray, NDArray]:
     """
     Converts cartesian to polar coordinates.
+    Adapted from:
+        https://github.com/electronmicroscopy/quantem/blob/dd7f29a0724eefd71fac8550fc757cbe9c7a8a74/src/quantem/diffractive_imaging/complex_probe.py#L411
     """
     k = np.sqrt(kx**2 + ky**2)
     phi = np.arctan2(ky, kx)
@@ -95,7 +124,7 @@ def quadratic_aberration_surface(
     """
     Evaluates the quadratic part of the aberration surface on a polar grid of angular frequencies.
     Uses the same polar coefficients conventions as abTEM:
-    https://abtem.readthedocs.io/en/latest/user_guide/walkthrough/contrast_transfer_function.html#phase-aberrations
+        https://abtem.readthedocs.io/en/latest/user_guide/walkthrough/contrast_transfer_function.html#phase-aberrations
     """
     C10 = aberration_coefs.get("C10", 0.0)
     C12 = aberration_coefs.get("C12", 0.0)
@@ -112,7 +141,9 @@ def quadratic_aberration_cartesian_gradients(
     alpha: NDArray, phi: NDArray, aberration_coefs: dict[str, float]
 ) -> tuple[NDArray, NDArray]:
     """
-    Evaluates the cartesian gradients of the quadratic part of the aberration surface on a polar grid of frequencies.
+    Evaluates the cartesian gradients of the quadratic part of the aberration surface
+    on a polar grid of frequencies. Adapted from:
+        https://github.com/electronmicroscopy/quantem/blob/dd7f29a0724eefd71fac8550fc757cbe9c7a8a74/src/quantem/diffractive_imaging/complex_probe.py#L218
     """
     C10 = aberration_coefs.get("C10", 0.0)
     C12 = aberration_coefs.get("C12", 0.0)

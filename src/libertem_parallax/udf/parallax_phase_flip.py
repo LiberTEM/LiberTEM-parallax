@@ -140,7 +140,7 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
         rotation_angle
             Active, counter-clockwise rotation in radians of the detector frequency grid to match
             the spatial frequency grid. See ``libertem_parallax.utils.spatial_frequencies?``
-            https://github.com/LiberTEM/LiberTEM-parallax/blob/main/src/libertem_parallax/utils.py#L24
+            https://github.com/LiberTEM/LiberTEM-parallax/blob/main/src/libertem_parallax/utils.py#L59
         upsampling_factor
             Integer upsampling factor for the scan grid.
         suppress_Nyquist_noise
