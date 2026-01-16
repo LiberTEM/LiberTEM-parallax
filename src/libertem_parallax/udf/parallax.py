@@ -1,5 +1,4 @@
 import numba
-import numpy as np
 
 from libertem_parallax.utils import (
     suppress_nyquist_frequency,
@@ -153,31 +152,6 @@ class ParallaxUDF(BaseParallaxUDF):
             upsampling_factor=upsampling_factor,
             suppress_Nyquist_noise=suppress_Nyquist_noise,
             **kwargs,
-        )
-
-    def get_result_buffers(self):
-        return {
-            "reconstruction": self.buffer(
-                kind="single",
-                dtype=np.float64,
-                extra_shape=self.upsampled_scan_gpts,
-            )
-        }
-
-    @property
-    def gpts(self) -> tuple[int, int]:
-        return self.meta.dataset_shape.sig  # ty:ignore[invalid-return-type]
-
-    @property
-    def scan_gpts(self) -> tuple[int, int]:
-        return self.meta.dataset_shape.nav  # ty:ignore[invalid-return-type]
-
-    @property
-    def upsampled_scan_gpts(self) -> tuple[int, int]:
-        upsampling_factor: int = self.params.upsampling_factor  # ty:ignore[invalid-assignment]
-        return (
-            self.scan_gpts[0] * upsampling_factor,
-            self.scan_gpts[1] * upsampling_factor,
         )
 
     def process_partition(self, partition):

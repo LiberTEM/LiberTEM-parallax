@@ -199,22 +199,6 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
             )
         }
 
-    @property
-    def gpts(self) -> tuple[int, int]:
-        return self.meta.dataset_shape.sig  # ty:ignore[invalid-return-type]
-
-    @property
-    def scan_gpts(self) -> tuple[int, int]:
-        return self.meta.dataset_shape.nav  # ty:ignore[invalid-return-type]
-
-    @property
-    def upsampled_scan_gpts(self) -> tuple[int, int]:
-        upsampling_factor: int = self.params.upsampling_factor  # ty:ignore[invalid-assignment]
-        return (
-            self.scan_gpts[0] * upsampling_factor,
-            self.scan_gpts[1] * upsampling_factor,
-        )
-
     def process_partition(self, partition):
         frames = partition.data  # shape (T, sy, sx)
 
