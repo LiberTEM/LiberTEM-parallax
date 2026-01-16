@@ -103,6 +103,7 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
         aberration_coefs: dict[str, float] | None = None,
         rotation_angle: float | None = None,
         upsampling_factor: int = 1,
+        suppress_Nyquist_noise: bool = True,
         **kwargs,
     ):
         """
@@ -139,6 +140,8 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
             Optional rotation of reciprocal coordinates, in radians.
         upsampling_factor
             Integer upsampling factor for the scan grid.
+        suppress_Nyquist_noise
+            Whether to suppress Nyquist-frequency artifacts in the kernel.
         """
 
         pre = cls.preprocess_geometry(
@@ -173,9 +176,11 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
             aberration_coefs=aberration_coefs,
         )
         sign_sin_chi_q = np.sign(np.sin(chi_q))
-        Nx, Ny = sign_sin_chi_q.shape
-        sign_sin_chi_q[Nx // 2, :] = 0.0
-        sign_sin_chi_q[:, Ny // 2] = 0.0
+
+        if suppress_Nyquist_noise:
+            Nx, Ny = sign_sin_chi_q.shape
+            sign_sin_chi_q[Nx // 2, :] = 0.0
+            sign_sin_chi_q[:, Ny // 2] = 0.0
         kernel = np.fft.ifft2(sign_sin_chi_q).real
 
         unique_offsets, grouped_kernel = prepare_grouped_phase_flipping_kernel(
