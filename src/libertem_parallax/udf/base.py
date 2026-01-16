@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import cast
 
 import numpy as np
 from libertem.common.shape import Shape
@@ -20,6 +21,8 @@ class PreprocessedGeometry:
     gpts: tuple[int, int]
     upsampled_scan_gpts: tuple[int, int]
     upsampled_sampling: tuple[float, float]
+    upsampling_factor: int
+    aberration_coefs: dict[str, float]
 
 
 class BaseParallaxUDF(UDF):
@@ -162,6 +165,8 @@ class BaseParallaxUDF(UDF):
             gpts=gpts,
             upsampled_scan_gpts=upsampled_scan_gpts,
             upsampled_sampling=upsampled_sampling,
+            upsampling_factor=upsampling_factor,
+            aberration_coefs=aberration_coefs,
         )
 
     def get_result_buffers(self):
@@ -169,6 +174,11 @@ class BaseParallaxUDF(UDF):
             "reconstruction": self.buffer(
                 kind="single",
                 dtype=np.float64,
-                extra_shape=self.params.upsampled_scan_gpts,  # ty:ignore[invalid-argument-type]
+                extra_shape=self.preprocessed_geometry.upsampled_scan_gpts,
             )
         }
+
+    @property
+    def preprocessed_geometry(self):
+        pre = cast(PreprocessedGeometry, self.params.preprocessed_geometry)
+        return pre

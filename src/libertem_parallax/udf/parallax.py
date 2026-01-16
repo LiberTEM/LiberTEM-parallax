@@ -77,21 +77,13 @@ class ParallaxUDF(BaseParallaxUDF):
 
     def __init__(
         self,
-        bf_flat_inds,
-        shifts,
-        gpts,
-        upsampled_scan_gpts,
-        upsampling_factor,
+        preprocessed_geometry,
         detector_transpose,
         suppress_Nyquist_noise,
         **kwargs,
     ):
         super().__init__(
-            bf_flat_inds=bf_flat_inds,
-            shifts=shifts,
-            gpts=gpts,
-            upsampled_scan_gpts=upsampled_scan_gpts,
-            upsampling_factor=upsampling_factor,
+            preprocessed_geometry=preprocessed_geometry,
             detector_transpose=detector_transpose,
             suppress_Nyquist_noise=suppress_Nyquist_noise,
             **kwargs,
@@ -168,11 +160,7 @@ class ParallaxUDF(BaseParallaxUDF):
         )
 
         return cls(
-            bf_flat_inds=pre.bf_flat_inds,
-            shifts=pre.shifts,
-            gpts=pre.gpts,
-            upsampled_scan_gpts=pre.upsampled_scan_gpts,
-            upsampling_factor=upsampling_factor,
+            preprocessed_geometry=pre,
             suppress_Nyquist_noise=suppress_Nyquist_noise,
             detector_transpose=detector_transpose,
             **kwargs,
@@ -183,21 +171,22 @@ class ParallaxUDF(BaseParallaxUDF):
         if self.params.detector_transpose:
             frames = frames.swapaxes(-1, -2)
 
+        pre = self.preprocessed_geometry
+
         # multiply signal coordinates by upsampling factor
-        upsampling_factor = self.params.upsampling_factor
-        coords = self.meta.coordinates * upsampling_factor
+        coords = self.meta.coordinates * pre.upsampling_factor
 
         parallax_accumulate_cpu(
             frames,
-            self.params.bf_flat_inds,
-            self.params.shifts,
+            pre.bf_flat_inds,
+            pre.shifts,
             coords,
             self.results.reconstruction,
         )
 
     def merge(self, dest, src):
         reconstruction = src.reconstruction
-        upsampling_factor: int = self.params.upsampling_factor  # ty:ignore[invalid-assignment]
+        upsampling_factor = self.preprocessed_geometry.upsampling_factor
 
         # Zero out largest spatial frequency to suppress Nyquist noise in integer shifts
         if self.params.suppress_Nyquist_noise and upsampling_factor > 1:

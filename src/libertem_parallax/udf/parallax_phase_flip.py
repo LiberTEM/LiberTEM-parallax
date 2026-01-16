@@ -9,6 +9,7 @@ from libertem_parallax.utils import (
     spatial_frequencies,
 )
 
+from . import ParallaxUDF
 from .base import BaseParallaxUDF
 
 
@@ -86,22 +87,16 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
 
     def __init__(
         self,
-        bf_flat_inds,
+        preprocessed_geometry,
         unique_offsets,
         grouped_kernel,
-        gpts,
-        upsampled_scan_gpts,
-        upsampling_factor,
         detector_transpose,
         **kwargs,
     ):
         super().__init__(
-            bf_flat_inds=bf_flat_inds,
+            preprocessed_geometry=preprocessed_geometry,
             unique_offsets=unique_offsets,
             grouped_kernel=grouped_kernel,
-            gpts=gpts,
-            upsampled_scan_gpts=upsampled_scan_gpts,
-            upsampling_factor=upsampling_factor,
             detector_transpose=detector_transpose,
             **kwargs,
         )
@@ -177,14 +172,11 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
             detector_transpose,
         )
 
-        if aberration_coefs is None:
-            aberration_coefs = {}
-
-        bf_flat_inds = pre.bf_flat_inds
         shifts = pre.shifts
         wavelength = pre.wavelength
         upsampled_scan_gpts = pre.upsampled_scan_gpts
         upsampled_sampling = pre.upsampled_sampling
+        aberration_coefs = pre.aberration_coefs
 
         # Phase-flip kernel
         qxa, qya = spatial_frequencies(upsampled_scan_gpts, upsampled_sampling)
@@ -209,13 +201,68 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
         )
 
         return cls(
-            bf_flat_inds=bf_flat_inds,
+            preprocessed_geometry=pre,
             unique_offsets=unique_offsets,
             grouped_kernel=grouped_kernel,
-            gpts=pre.gpts,
-            upsampled_scan_gpts=upsampled_scan_gpts,
-            upsampling_factor=upsampling_factor,
             detector_transpose=detector_transpose,
+            **kwargs,
+        )
+
+    @classmethod
+    def from_parallax_udf(
+        cls,
+        udf: ParallaxUDF,
+        **kwargs,
+    ):
+        """
+        Construct a ParallaxPhaseFlipUDF from an existing ParallaxUDF.
+
+        Reuses precomputed geometry (BF indices, shifts, gpts, sampling)
+        and computes only the phase-flip kernel.
+        """
+        params = udf.params
+        pre = udf.preprocessed_geometry
+
+        upsampled_scan_gpts: tuple[int, int] = pre.upsampled_scan_gpts
+        upsampled_sampling: tuple[float, float] = pre.upsampled_sampling
+        wavelength = pre.wavelength
+        aberration_coefs = pre.aberration_coefs
+
+        # ---- Phase-flip kernel ----
+        qxa, qya = spatial_frequencies(
+            upsampled_scan_gpts,
+            upsampled_sampling,
+        )
+        q, theta = polar_coordinates(qxa, qya)
+
+        aberration_surface = quadratic_aberration_surface(
+            q * wavelength,
+            theta,
+            wavelength,
+            aberration_coefs=aberration_coefs,
+        )
+
+        fourier_kernel = np.sign(np.sin(aberration_surface))
+
+        if params.suppress_Nyquist_noise:
+            Nx, Ny = fourier_kernel.shape
+            fourier_kernel[Nx // 2, :] = 0.0
+            fourier_kernel[:, Ny // 2] = 0.0
+
+        realspace_kernel = np.fft.ifft2(fourier_kernel).real
+
+        unique_offsets, grouped_kernel = prepare_grouped_phase_flipping_kernel(
+            realspace_kernel,
+            pre.shifts,
+            pre.upsampled_scan_gpts,
+        )
+
+        return cls(
+            preprocessed_geometry=pre,
+            unique_offsets=unique_offsets,
+            grouped_kernel=grouped_kernel,
+            detector_transpose=params.detector_transpose,
+            suppress_Nyquist_noise=params.suppress_Nyquist_noise,
             **kwargs,
         )
 
@@ -224,12 +271,13 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
         if self.params.detector_transpose:
             frames = frames.swapaxes(-1, -2)
 
-        # multiply signal coordinates by upsampling factor
-        upsampling_factor = self.params.upsampling_factor
-        coords = self.meta.coordinates * upsampling_factor
+        pre = self.preprocessed_geometry
 
-        bf_flat_inds = np.asarray(self.params.bf_flat_inds)
-        bf_rows, bf_cols = np.unravel_index(bf_flat_inds, self.params.gpts)  # ty:ignore[no-matching-overload]
+        # multiply signal coordinates by upsampling factor
+        coords = self.meta.coordinates * pre.upsampling_factor
+
+        bf_flat_inds = np.asarray(pre.bf_flat_inds)
+        bf_rows, bf_cols = np.unravel_index(bf_flat_inds, pre.gpts)
 
         parallax_phase_flip_accumulate_cpu(
             frames,
