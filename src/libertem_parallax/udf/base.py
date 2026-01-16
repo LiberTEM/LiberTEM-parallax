@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import numpy as np
+from libertem.common.shape import Shape
 from libertem.udf import UDF
 
 from libertem_parallax.utils import (
@@ -33,8 +34,7 @@ class BaseParallaxUDF(UDF):
     @classmethod
     def preprocess_geometry(
         cls,
-        gpts: tuple[int, int],
-        scan_gpts: tuple[int, int],
+        shape: tuple[int, int, int, int] | Shape,
         scan_sampling: tuple[float, float],
         energy: float,
         semiangle_cutoff: float,
@@ -55,10 +55,9 @@ class BaseParallaxUDF(UDF):
 
         Parameters
         ----------
-        gpts
-            Number of detector pixels (ny, nx).
-        scan_gpts
-            Scan grid size (Ny, Nx).
+        shape:
+            Acquisition shape of length 4.
+            First two are scan dimensions. Last two are signal dimensions.
         scan_sampling
             Scan sampling in real space.
         energy
@@ -98,10 +97,15 @@ class BaseParallaxUDF(UDF):
                 angular_sampling[1] / wavelength / 1e3,
             )
 
-        ny, nx = gpts
+        if len(shape) != 4:
+            raise ValueError(f"`shape` must have length 4, not {len(shape)}.")
+
+        scan_gpts = (shape[0], shape[1])
+        gpts = (shape[-2], shape[-1])
+
         sampling = (
-            1.0 / reciprocal_sampling[0] / ny,
-            1.0 / reciprocal_sampling[1] / nx,
+            1.0 / reciprocal_sampling[0] / gpts[0],
+            1.0 / reciprocal_sampling[1] / gpts[1],
         )
 
         upsampled_gpts = (
@@ -129,9 +133,9 @@ class BaseParallaxUDF(UDF):
         bf_mask = k * wavelength * 1e3 <= semiangle_cutoff
         inds_i, inds_j = np.where(bf_mask)
 
-        inds_i_fft = (inds_i - ny // 2) % ny
-        inds_j_fft = (inds_j - nx // 2) % nx
-        bf_flat_inds = (inds_i_fft * nx + inds_j_fft).astype(np.int32)
+        inds_i_fft = (inds_i - gpts[0] // 2) % gpts[0]
+        inds_j_fft = (inds_j - gpts[1] // 2) % gpts[1]
+        bf_flat_inds = (inds_i_fft * gpts[1] + inds_j_fft).astype(np.int32)
 
         dx, dy = quadratic_aberration_cartesian_gradients(
             k * wavelength,

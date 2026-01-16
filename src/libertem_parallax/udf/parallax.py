@@ -1,4 +1,5 @@
 import numba
+from libertem.common.shape import Shape
 
 from libertem_parallax.utils import (
     suppress_nyquist_frequency,
@@ -87,8 +88,7 @@ class ParallaxUDF(BaseParallaxUDF):
     @classmethod
     def from_parameters(
         cls,
-        gpts: tuple[int, int],
-        scan_gpts: tuple[int, int],
+        shape: tuple[int, int, int, int] | Shape,
         scan_sampling: tuple[float, float],
         energy: float,
         semiangle_cutoff: float,
@@ -113,10 +113,9 @@ class ParallaxUDF(BaseParallaxUDF):
 
         Parameters
         ----------
-        gpts
-            Number of detector pixels (ny, nx).
-        scan_gpts
-            Scan grid size (Ny, Nx).
+        shape:
+            Acquisition shape of length 4.
+            First two are scan dimensions. Last two are signal dimensions.
         scan_sampling
             Scan sampling in real space.
         energy
@@ -141,8 +140,7 @@ class ParallaxUDF(BaseParallaxUDF):
         """
 
         pre = cls.preprocess_geometry(
-            gpts,
-            scan_gpts,
+            shape,
             scan_sampling,
             energy,
             semiangle_cutoff,
