@@ -17,7 +17,8 @@ class PreprocessedGeometry:
     bf_flat_inds: np.ndarray
     shifts: np.ndarray
     wavelength: float
-    upsampled_gpts: tuple[int, int]
+    gpts: tuple[int, int]
+    upsampled_scan_gpts: tuple[int, int]
     upsampled_sampling: tuple[float, float]
 
 
@@ -43,6 +44,7 @@ class BaseParallaxUDF(UDF):
         aberration_coefs: dict[str, float] | None = None,
         rotation_angle: float | None = None,
         upsampling_factor: int = 1,
+        detector_transpose: bool = False,
     ):
         """
         Precomputes:
@@ -101,14 +103,17 @@ class BaseParallaxUDF(UDF):
             raise ValueError(f"`shape` must have length 4, not {len(shape)}.")
 
         scan_gpts = (shape[0], shape[1])
-        gpts = (shape[-2], shape[-1])
+        if detector_transpose:
+            gpts = (shape[-1], shape[-2])
+        else:
+            gpts = (shape[-2], shape[-1])
 
         sampling = (
             1.0 / reciprocal_sampling[0] / gpts[0],
             1.0 / reciprocal_sampling[1] / gpts[1],
         )
 
-        upsampled_gpts = (
+        upsampled_scan_gpts = (
             scan_gpts[0] * upsampling_factor,
             scan_gpts[1] * upsampling_factor,
         )
@@ -154,7 +159,8 @@ class BaseParallaxUDF(UDF):
             bf_flat_inds=bf_flat_inds,
             shifts=shifts,
             wavelength=wavelength,
-            upsampled_gpts=upsampled_gpts,
+            gpts=gpts,
+            upsampled_scan_gpts=upsampled_scan_gpts,
             upsampled_sampling=upsampled_sampling,
         )
 
@@ -163,22 +169,6 @@ class BaseParallaxUDF(UDF):
             "reconstruction": self.buffer(
                 kind="single",
                 dtype=np.float64,
-                extra_shape=self.upsampled_scan_gpts,
+                extra_shape=self.params.upsampled_scan_gpts,  # ty:ignore[invalid-argument-type]
             )
         }
-
-    @property
-    def gpts(self) -> tuple[int, int]:
-        return self.meta.dataset_shape.sig.to_tuple()  # ty:ignore[invalid-return-type]
-
-    @property
-    def scan_gpts(self) -> tuple[int, int]:
-        return self.meta.dataset_shape.nav  # ty:ignore[invalid-return-type]
-
-    @property
-    def upsampled_scan_gpts(self) -> tuple[int, int]:
-        upsampling_factor: int = self.params.upsampling_factor  # ty:ignore[invalid-assignment]
-        return (
-            self.scan_gpts[0] * upsampling_factor,
-            self.scan_gpts[1] * upsampling_factor,
-        )

@@ -1,4 +1,5 @@
 import numba
+import numpy as np
 from libertem.common.shape import Shape
 
 from libertem_parallax.utils import (
@@ -75,12 +76,23 @@ class ParallaxUDF(BaseParallaxUDF):
     """
 
     def __init__(
-        self, bf_flat_inds, shifts, upsampling_factor, suppress_Nyquist_noise, **kwargs
+        self,
+        bf_flat_inds,
+        shifts,
+        gpts,
+        upsampled_scan_gpts,
+        upsampling_factor,
+        detector_transpose,
+        suppress_Nyquist_noise,
+        **kwargs,
     ):
         super().__init__(
             bf_flat_inds=bf_flat_inds,
             shifts=shifts,
+            gpts=gpts,
+            upsampled_scan_gpts=upsampled_scan_gpts,
             upsampling_factor=upsampling_factor,
+            detector_transpose=detector_transpose,
             suppress_Nyquist_noise=suppress_Nyquist_noise,
             **kwargs,
         )
@@ -98,6 +110,7 @@ class ParallaxUDF(BaseParallaxUDF):
         rotation_angle: float | None = None,
         upsampling_factor: int = 1,
         suppress_Nyquist_noise: bool = True,
+        detector_transpose: bool = False,
         **kwargs,
     ):
         """
@@ -137,6 +150,8 @@ class ParallaxUDF(BaseParallaxUDF):
             Integer upsampling factor for the scan grid.
         suppress_Nyquist_noise
             Whether to suppress Nyquist-frequency artifacts at merge time.
+        detector_transpose
+            True if detector signal axes need to be transposed.
         """
 
         pre = cls.preprocess_geometry(
@@ -149,18 +164,24 @@ class ParallaxUDF(BaseParallaxUDF):
             aberration_coefs,
             rotation_angle,
             upsampling_factor,
+            detector_transpose,
         )
 
         return cls(
             bf_flat_inds=pre.bf_flat_inds,
             shifts=pre.shifts,
+            gpts=pre.gpts,
+            upsampled_scan_gpts=pre.upsampled_scan_gpts,
             upsampling_factor=upsampling_factor,
             suppress_Nyquist_noise=suppress_Nyquist_noise,
+            detector_transpose=detector_transpose,
             **kwargs,
         )
 
     def process_partition(self, partition):
-        frames = partition.data
+        frames = np.asarray(partition.data)
+        if self.params.detector_transpose:
+            frames = frames.swapaxes(-1, -2)
 
         # multiply signal coordinates by upsampling factor
         upsampling_factor = self.params.upsampling_factor
