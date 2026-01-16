@@ -78,13 +78,13 @@ class ParallaxUDF(BaseParallaxUDF):
     def __init__(
         self,
         preprocessed_geometry,
-        detector_transpose,
+        detector_flip_cols,
         suppress_Nyquist_noise,
         **kwargs,
     ):
         super().__init__(
             preprocessed_geometry=preprocessed_geometry,
-            detector_transpose=detector_transpose,
+            detector_flip_cols=detector_flip_cols,
             suppress_Nyquist_noise=suppress_Nyquist_noise,
             **kwargs,
         )
@@ -102,7 +102,7 @@ class ParallaxUDF(BaseParallaxUDF):
         rotation_angle: float | None = None,
         upsampling_factor: int = 1,
         suppress_Nyquist_noise: bool = True,
-        detector_transpose: bool = False,
+        detector_flip_cols: bool = False,
         **kwargs,
     ):
         """
@@ -142,8 +142,8 @@ class ParallaxUDF(BaseParallaxUDF):
             Integer upsampling factor for the scan grid.
         suppress_Nyquist_noise
             Whether to suppress Nyquist-frequency artifacts at merge time.
-        detector_transpose
-            True if detector signal axes need to be transposed.
+        detector_flip_cols
+            True if last detector axis need to be flipped.
         """
 
         pre = cls.preprocess_geometry(
@@ -156,20 +156,19 @@ class ParallaxUDF(BaseParallaxUDF):
             aberration_coefs,
             rotation_angle,
             upsampling_factor,
-            detector_transpose,
         )
 
         return cls(
             preprocessed_geometry=pre,
             suppress_Nyquist_noise=suppress_Nyquist_noise,
-            detector_transpose=detector_transpose,
+            detector_flip_cols=detector_flip_cols,
             **kwargs,
         )
 
     def process_partition(self, partition):
         frames = np.asarray(partition.data)
-        if self.params.detector_transpose:
-            frames = frames.swapaxes(-1, -2)
+        if self.params.detector_flip_cols:
+            frames = frames[..., ::-1]
 
         pre = self.preprocessed_geometry
 

@@ -47,7 +47,6 @@ class BaseParallaxUDF(UDF):
         aberration_coefs: dict[str, float] | None = None,
         rotation_angle: float | None = None,
         upsampling_factor: int = 1,
-        detector_transpose: bool = False,
     ):
         """
         Precomputes:
@@ -106,10 +105,7 @@ class BaseParallaxUDF(UDF):
             raise ValueError(f"`shape` must have length 4, not {len(shape)}.")
 
         scan_gpts = (shape[0], shape[1])
-        if detector_transpose:
-            gpts = (shape[-1], shape[-2])
-        else:
-            gpts = (shape[-2], shape[-1])
+        gpts = (shape[-2], shape[-1])
 
         sampling = (
             1.0 / reciprocal_sampling[0] / gpts[0],

@@ -90,14 +90,14 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
         preprocessed_geometry,
         unique_offsets,
         grouped_kernel,
-        detector_transpose,
+        detector_flip_cols,
         **kwargs,
     ):
         super().__init__(
             preprocessed_geometry=preprocessed_geometry,
             unique_offsets=unique_offsets,
             grouped_kernel=grouped_kernel,
-            detector_transpose=detector_transpose,
+            detector_flip_cols=detector_flip_cols,
             **kwargs,
         )
 
@@ -114,7 +114,7 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
         rotation_angle: float | None = None,
         upsampling_factor: int = 1,
         suppress_Nyquist_noise: bool = True,
-        detector_transpose: bool = False,
+        detector_flip_cols: bool = False,
         **kwargs,
     ):
         """
@@ -155,8 +155,8 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
             Integer upsampling factor for the scan grid.
         suppress_Nyquist_noise
             Whether to suppress Nyquist-frequency artifacts in the kernel.
-        detector_transpose
-            True if detector signal axes need to be transposed.
+        detector_flip_cols
+            True if last detector axis need to be flipped.
         """
 
         pre = cls.preprocess_geometry(
@@ -169,7 +169,6 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
             aberration_coefs,
             rotation_angle,
             upsampling_factor,
-            detector_transpose,
         )
 
         shifts = pre.shifts
@@ -204,7 +203,7 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
             preprocessed_geometry=pre,
             unique_offsets=unique_offsets,
             grouped_kernel=grouped_kernel,
-            detector_transpose=detector_transpose,
+            detector_flip_cols=detector_flip_cols,
             **kwargs,
         )
 
@@ -261,15 +260,15 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
             preprocessed_geometry=pre,
             unique_offsets=unique_offsets,
             grouped_kernel=grouped_kernel,
-            detector_transpose=params.detector_transpose,
+            detector_flip_cols=params.detector_flip_cols,
             suppress_Nyquist_noise=params.suppress_Nyquist_noise,
             **kwargs,
         )
 
     def process_partition(self, partition):
         frames = np.asarray(partition.data)
-        if self.params.detector_transpose:
-            frames = frames.swapaxes(-1, -2)
+        if self.params.detector_flip_cols:
+            frames = frames[..., ::-1]
 
         pre = self.preprocessed_geometry
 
