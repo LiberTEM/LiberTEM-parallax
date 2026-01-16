@@ -178,7 +178,3 @@ class ParallaxUDF(BaseParallaxUDF):
             reconstruction = suppress_nyquist_frequency(reconstruction)
 
         dest.reconstruction[:] += reconstruction
-
-    def postprocess(self):
-        # No postprocessing required
-        pass

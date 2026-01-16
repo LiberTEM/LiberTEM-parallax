@@ -154,6 +154,15 @@ class BaseParallaxUDF(UDF):
             upsampled_sampling=upsampled_sampling,
         )
 
+    def get_result_buffers(self):
+        return {
+            "reconstruction": self.buffer(
+                kind="single",
+                dtype=np.float64,
+                extra_shape=self.upsampled_scan_gpts,
+            )
+        }
+
     @property
     def gpts(self) -> tuple[int, int]:
         return self.meta.dataset_shape.sig.to_tuple()  # ty:ignore[invalid-return-type]

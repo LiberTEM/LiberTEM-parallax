@@ -190,15 +190,6 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
             **kwargs,
         )
 
-    def get_result_buffers(self):
-        return {
-            "reconstruction": self.buffer(
-                kind="single",
-                dtype=np.float64,
-                extra_shape=self.upsampled_scan_gpts,
-            )
-        }
-
     def process_partition(self, partition):
         frames = partition.data  # shape (T, sy, sx)
 
@@ -222,7 +213,3 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
 
     def merge(self, dest, src):
         dest.reconstruction[:] += src.reconstruction
-
-    def postprocess(self):
-        # No extra post-processing needed
-        pass
