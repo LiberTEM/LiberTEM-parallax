@@ -37,23 +37,21 @@ ctx = libertem.api.Context(
 ds = ctx.load("npy",path="../data/apoF_4mrad_1.5um-df_3A-step_30eA2_binary.npy")
 
 udf = prlx.ParallaxUDF.from_parameters(
-
-    # acquisition parameters
-    gpts=ds.meta.shape.sig,
-    scan_gpts=ds.meta.shape.nav,
+    shape = ds.shape,
     scan_sampling = (256/72,256/72),
     angular_sampling = (0.307617,0.307617),
     energy=300e3,
     semiangle_cutoff=4.0,
-
-    # reconstruction parameters,
     aberration_coefs={"C10":-1.5e4},
     rotation_angle=np.deg2rad(-15),
-    upsampling_factor=2
+    upsampling_factor=2,
 )
 
-result = ctx.run_udf(dataset=ds, udf=udf)
-reconstruction = result["reconstruction"]
+udf_flip = prlx.ParallaxPhaseFlipUDF.from_parallax_udf(
+    udf
+)
+
+result, result_flip = ctx.run_udf(dataset=ds, udf=[udf,udf_flip])
 ```
 
 ## Parallax imaging background
