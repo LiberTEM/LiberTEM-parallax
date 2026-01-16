@@ -67,6 +67,10 @@ class ParallaxUDF(BaseParallaxUDF):
     Accumulates mean-subtracted bright-field intensities into a
     real-space parallax reconstruction using integer pixel shifts
     derived from probe aberrations.
+
+    Instances must be constructed via `from_parameters()`.
+    Direct instantiation is not recommended to ensure
+    consistent preprocessing and streaming-safe configuration.
     """
 
     def __init__(

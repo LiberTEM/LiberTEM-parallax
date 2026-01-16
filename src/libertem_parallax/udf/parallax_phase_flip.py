@@ -77,6 +77,10 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
     Accumulates mean-subtracted bright-field intensities into a
     real-space phase-flipped parallax reconstruction by indexing the phase-flipped
     kernel using integer pixel shifts derived from probe aberrations.
+
+    Instances must be constructed via `from_parameters()`.
+    Direct instantiation is not recommended to ensure
+    consistent preprocessing and streaming-safe configuration.
     """
 
     def __init__(
