@@ -37,13 +37,13 @@ def electron_wavelength(energy: float) -> float:
     Adapted from:
         https://github.com/electronmicroscopy/quantem/blob/dd7f29a0724eefd71fac8550fc757cbe9c7a8a74/src/quantem/core/utils/utils.py#L97
     """
-    m = 9.109383e-31
-    e = 1.602177e-19
-    c = 299792458
-    h = 6.62607e-34
+    m = 9.109383e-31  # mass in SI (Kg)
+    e = 1.602177e-19  # elementary charge in SI (C)
+    c = 299792458  # speed of light in SI (m/s)
+    h = 6.62607e-34  # planch constant in SI (Kg m^2 / s)
 
     lam = h / np.sqrt(2 * m * e * energy) / np.sqrt(1 + e * energy / 2 / m / c**2)
-    return lam * 1e10
+    return lam * 1e10  # convert from m to Angstroms
 
 
 def spatial_frequencies(
@@ -98,10 +98,10 @@ def spatial_frequencies(
     kxa, kya = np.meshgrid(kx, ky, indexing="ij")
 
     if rotation_angle is not None:
-        c = np.cos(rotation_angle)
-        s = np.sin(rotation_angle)
-        kx_rot = c * kxa - s * kya
-        ky_rot = s * kxa + c * kya
+        cos_theta = np.cos(rotation_angle)
+        sin_theta = np.sin(rotation_angle)
+        kx_rot = cos_theta * kxa - sin_theta * kya
+        ky_rot = sin_theta * kxa + cos_theta * kya
         kxa, kya = kx_rot, ky_rot
 
     return kxa, kya
@@ -132,9 +132,11 @@ def quadratic_aberration_surface(
 
     prefactor = np.pi / wavelength
 
-    chi = prefactor * alpha**2 * (C10 + C12 * np.cos(2.0 * (phi - phi12)))
+    aberration_surface = (
+        prefactor * alpha**2 * (C10 + C12 * np.cos(2.0 * (phi - phi12)))
+    )
 
-    return chi
+    return aberration_surface
 
 
 def quadratic_aberration_cartesian_gradients(
@@ -170,21 +172,21 @@ def suppress_nyquist_frequency(array: NDArray):
     """
     Zeros Nyquist frequencies of a real-space array.
     """
-    F = np.fft.fft2(array)
-    Nx, Ny = F.shape
-    F[Nx // 2, :] = 0.0
-    F[:, Ny // 2] = 0.0
-    return np.fft.ifft2(F).real
+    fourier_array = np.fft.fft2(array)
+    Nx, Ny = fourier_array.shape
+    fourier_array[Nx // 2, :] = 0.0
+    fourier_array[:, Ny // 2] = 0.0
+    return np.fft.ifft2(fourier_array).real
 
 
-def prepare_grouped_phase_flipping_kernel(H, s_m_up, upsampled_gpts):
+def prepare_grouped_phase_flipping_kernel(kernel, shifts_m_upsampled, upsampled_gpts):
     """
     Prepare the phase-flip kernel offsets and weights in NumPy.
     Parameters
     ----------
-    H : np.ndarray, shape (h, w)
+    kernel : np.ndarray, shape (h, w)
         Base kernel.
-    s_m_up : np.ndarray, shape (M, 2)
+    shifts_m_upsampled : np.ndarray, shape (M, 2)
         Up-sampled shifts for M BF pixels, [y, x].
     upsampled_gpts : tuple[int, int]
         (Ny, Nx) real-space grid size
@@ -192,12 +194,12 @@ def prepare_grouped_phase_flipping_kernel(H, s_m_up, upsampled_gpts):
     -------
     unique_offsets : np.ndarray[int64], shape (U,)
         Flattened offsets for scatter-add.
-    K : np.ndarray[float64], shape (U, M)
+    grouped_kernel : np.ndarray[float64], shape (U, M)
         Phase-flip weights for each unique offset and BF pixel.
     """
     Ny, Nx = upsampled_gpts
-    h, w = H.shape
-    M = s_m_up.shape[0]
+    h, w = kernel.shape
+    M = shifts_m_upsampled.shape[0]
     L0 = h * w
 
     # kernel grid
@@ -211,8 +213,8 @@ def prepare_grouped_phase_flipping_kernel(H, s_m_up, upsampled_gpts):
     dx_rep = np.tile(dx_grid, M)
 
     # shifts repeated
-    s_my = np.repeat(s_m_up[:, 0], L0)
-    s_mx = np.repeat(s_m_up[:, 1], L0)
+    s_my = np.repeat(shifts_m_upsampled[:, 0], L0)
+    s_mx = np.repeat(shifts_m_upsampled[:, 1], L0)
 
     # compute flattened offsets
     offsets = (dy_rep + s_my) * Nx + (dx_rep + s_mx)
@@ -222,11 +224,11 @@ def prepare_grouped_phase_flipping_kernel(H, s_m_up, upsampled_gpts):
     U = unique_offsets.size
 
     # build grouped kernel
-    H_flat = H.ravel()
+    H_flat = kernel.ravel()
     H_all = np.tile(H_flat, M)
     m_idx = np.repeat(np.arange(M), L0)
 
-    K = np.zeros((U, M), dtype=H.dtype)
-    np.add.at(K, (inv, m_idx), H_all)  # accumulate values
+    grouped_kernel = np.zeros((U, M), dtype=kernel.dtype)
+    np.add.at(grouped_kernel, (inv, m_idx), H_all)  # accumulate values
 
-    return unique_offsets.astype(np.int64), K
+    return unique_offsets.astype(np.int64), grouped_kernel

@@ -13,7 +13,7 @@ from .base import BaseParallaxUDF
 
 @numba.njit(fastmath=True, nogil=True, cache=True)
 def parallax_phase_flip_accumulate_cpu(
-    frames, bf_rows, bf_cols, coords, unique_offsets, K, out
+    frames, bf_rows, bf_cols, coords, unique_offsets, grouped_kernel, out
 ):
     """
     Scatter-add phase-flip contributions into a real-space accumulator.
@@ -59,7 +59,7 @@ def parallax_phase_flip_accumulate_cpu(
         for u in range(U):
             acc = 0.0
             for m in range(M):
-                acc += K[u, m] * I_bf[m]
+                acc += grouped_kernel[u, m] * I_bf[m]
             vals[u] = acc
 
         # Scatter-add to accumulator
@@ -176,22 +176,23 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
         # Phase-flip kernel
         qxa, qya = spatial_frequencies(upsampled_gpts, upsampled_sampling)
         q, theta = polar_coordinates(qxa, qya)
-        chi_q = quadratic_aberration_surface(
+        aberration_surface = quadratic_aberration_surface(
             q * wavelength,
             theta,
             wavelength,
             aberration_coefs=aberration_coefs,
         )
-        sign_sin_chi_q = np.sign(np.sin(chi_q))
+        fourier_kernel = np.sign(np.sin(aberration_surface))
 
         if suppress_Nyquist_noise:
-            Nx, Ny = sign_sin_chi_q.shape
-            sign_sin_chi_q[Nx // 2, :] = 0.0
-            sign_sin_chi_q[:, Ny // 2] = 0.0
-        kernel = np.fft.ifft2(sign_sin_chi_q).real
+            Nx, Ny = fourier_kernel.shape
+            fourier_kernel[Nx // 2, :] = 0.0
+            fourier_kernel[:, Ny // 2] = 0.0
+
+        realspace_kernel = np.fft.ifft2(fourier_kernel).real
 
         unique_offsets, grouped_kernel = prepare_grouped_phase_flipping_kernel(
-            kernel, shifts, upsampled_gpts
+            realspace_kernel, shifts, upsampled_gpts
         )
 
         return cls(
