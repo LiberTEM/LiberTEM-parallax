@@ -28,6 +28,40 @@ def spatial_frequencies(
 ) -> tuple[NDArray, NDArray]:
     """
     Returns (optionally rotated) corner-centered spatial frequencies on a grid.
+
+    Rotation convention
+    -------------------
+
+    The ``rotation_angle`` parameter applies an **active, counter-clockwise (CCW)**
+    rotation to the detector-frequency coordinates ``(kx, ky)``:
+
+        (kx', ky') = R(+θ) · (kx, ky)
+
+    with
+
+        R(θ) = [[ cos(θ), -sin(θ)],
+                [ sin(θ),  cos(θ)]]
+
+    This corresponds to rotating the **detector frequency vectors themselves** in a
+    fixed laboratory coordinate system.
+
+    Important note on sign conventions
+    ----------------------------------
+
+    This active frequency-grid rotation differs from common image-space rotation
+    functions such as ``scipy.ndimage.rotate``, which perform a **passive rotation**
+    of the image content within a fixed array grid.
+
+    As a result:
+
+    - A **counter-clockwise rotation of the detector image by +θ**
+    (e.g. using ``ndimage.rotate``)
+    - corresponds to a **clockwise rotation of the frequency coordinates by −θ**
+
+    Therefore, when a detector image has been rotated CCW by an angle ``θ`` in
+    real space, the corresponding spatial-frequency grid must be rotated using
+
+        rotation_angle = -θ
     """
     ny, nx = gpts
     sy, sx = sampling

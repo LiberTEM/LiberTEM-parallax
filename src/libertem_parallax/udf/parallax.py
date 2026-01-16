@@ -127,7 +127,9 @@ class ParallaxUDF(BaseParallaxUDF):
             Polar aberration coefficients in Angstroms and radians using abTEM conventions:
             https://abtem.readthedocs.io/en/latest/user_guide/walkthrough/contrast_transfer_function.html#phase-aberrations
         rotation_angle
-            Optional rotation of reciprocal coordinates, in radians.
+            Active, counter-clockwise rotation in radians of the detector frequency grid to match
+            the spatial frequency grid. See ``libertem_parallax.utils.spatial_frequencies?``
+            https://github.com/LiberTEM/LiberTEM-parallax/blob/main/src/libertem_parallax/utils.py#L24
         upsampling_factor
             Integer upsampling factor for the scan grid.
         suppress_Nyquist_noise
