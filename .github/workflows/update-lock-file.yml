@@ -2,68 +2,66 @@ name: Update uv.lock
 
 on:
   schedule:
-    - cron: '0 9 * * 1'  # every Monday 9 AM UTC
+    - cron: '0 9 * * 1'
   workflow_dispatch:
 
 permissions:
-  contents: write        # needed to push branches
-  pull-requests: write   # needed to create PR
+  contents: write
+  pull-requests: write
 
 jobs:
   update-lockfile:
     runs-on: ubuntu-latest
     steps:
-      # 1. Checkout latest dev
       - uses: actions/checkout@v4
         with:
           ref: dev
-          fetch-depth: 0  # fetch full history so we can diff
+          fetch-depth: 0
 
-      # 2. Setup uv
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
 
-      # 3. Upgrade uv.lock
-      - name: Upgrade dependencies
+      - name: Upgrade uv.lock
+        id: upgrade
         run: |
           set -e
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-          # Ensure we're on latest dev
+          # Make sure local dev matches origin/dev
           git fetch origin dev
-          git checkout -B dev origin/dev
+          git checkout dev
+          git reset --hard origin/dev
 
           # Upgrade lockfile
           uv lock --upgrade
 
-          # Check if there are changes
+          # If nothing changed, exit
           if git diff --quiet uv.lock; then
-            echo "No changes in uv.lock; nothing to do"
+            echo "no_changes=true" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # Create unique branch
-          BRANCH="chore/update-lockfile-$(date +%Y%m%d)"
-          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
-
-          git checkout -B "$BRANCH"
+          # Commit changes
+          BRANCH="chore/update-lockfile-$(date +%Y%m%d-%H%M%S)-${GITHUB_RUN_ID}"
+          git checkout -b "$BRANCH"
           git add uv.lock
           git commit -m "chore: update uv.lock"
 
           # Push branch
           git push origin "$BRANCH"
 
-      # 4. Create PR using peter-evans action
+          # Output branch name for PR step
+          echo "branch_name=$BRANCH" >> $GITHUB_OUTPUT
+          echo "no_changes=false" >> $GITHUB_OUTPUT
+
       - name: Create Pull Request
+        if: steps.upgrade.outputs.no_changes == 'false'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: update uv.lock"
-          branch: ${{ env.BRANCH }}
+          branch: ${{ steps.upgrade.outputs.branch_name }}
           base: dev
           title: "chore: update uv.lock"
-          body: |
-            Automated uv.lock update via `uv lock --upgrade`.
-            Please review and run tests before merging.
+          body: "Automated uv.lock update via `uv lock --upgrade`."
           labels: automated, dependencies
