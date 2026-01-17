@@ -1,0 +1,51 @@
+name: Update uv.lock
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # every Monday 9 AM UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write  # needed to push branches
+  pull-requests: write  # needed to create PR
+
+jobs:
+  update-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Upgrade dependencies
+        run: |
+          set -e
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          uv lock --upgrade
+          
+          if git diff --quiet uv.lock; then
+            echo "No changes in lockfile"
+            exit 0
+          fi
+          
+          BRANCH="chore/update-lockfile-$(date +%Y%m%d)"
+          git checkout -b "$BRANCH"
+          git add uv.lock
+          git commit -m "chore: update uv.lock"
+          git push origin "$BRANCH"
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update uv.lock"
+          branch: "chore/update-lockfile-${{ github.run_id }}"
+          base: dev
+          title: "chore: update uv.lock"
+          body: "Automated lockfile update via `uv lock --upgrade`"
+          labels: automated, dependencies
