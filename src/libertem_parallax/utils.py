@@ -97,11 +97,14 @@ def spatial_frequencies(
     kxa, kya = np.meshgrid(kx, ky, indexing="ij")
 
     if rotation_angle is not None:
+        kxa_centered = kxa - kxa.mean()
+        kya_centered = kya - kya.mean()
+
         cos_theta = np.cos(rotation_angle)
         sin_theta = np.sin(rotation_angle)
-        kx_rot = cos_theta * kxa - sin_theta * kya
-        ky_rot = sin_theta * kxa + cos_theta * kya
-        kxa, kya = kx_rot, ky_rot
+        kx_rot = cos_theta * kxa_centered - sin_theta * kya_centered
+        ky_rot = sin_theta * kxa_centered + cos_theta * kya_centered
+        kxa, kya = kx_rot + kxa.mean(), ky_rot + kya.mean()
 
     return kxa, kya
 
