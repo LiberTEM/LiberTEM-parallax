@@ -6,48 +6,64 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # needed to push branches
-  pull-requests: write  # needed to create PR
+  contents: write        # needed to push branches
+  pull-requests: write   # needed to create PR
 
 jobs:
   update-lockfile:
     runs-on: ubuntu-latest
     steps:
+      # 1. Checkout latest dev
       - uses: actions/checkout@v4
         with:
           ref: dev
+          fetch-depth: 0  # fetch full history so we can diff
 
+      # 2. Setup uv
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
 
+      # 3. Upgrade uv.lock
       - name: Upgrade dependencies
         run: |
           set -e
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          
+
+          # Ensure we're on latest dev
+          git fetch origin dev
+          git checkout -B dev origin/dev
+
+          # Upgrade lockfile
           uv lock --upgrade
-          
+
+          # Check if there are changes
           if git diff --quiet uv.lock; then
-            echo "No changes in lockfile"
+            echo "No changes in uv.lock; nothing to do"
             exit 0
           fi
-          
+
+          # Create unique branch
           BRANCH="chore/update-lockfile-$(date +%Y%m%d)"
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
-                    
-          git checkout -b "$BRANCH"
+
+          git checkout -B "$BRANCH"
           git add uv.lock
           git commit -m "chore: update uv.lock"
+
+          # Push branch
           git push origin "$BRANCH"
 
-      - name: Create PR
-        uses: peter-evans/create-pull-request@v8
+      # 4. Create PR using peter-evans action
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: update uv.lock"
           branch: ${{ env.BRANCH }}
           base: dev
           title: "chore: update uv.lock"
-          body: "Automated lockfile update via `uv lock --upgrade`"
+          body: |
+            Automated uv.lock update via `uv lock --upgrade`.
+            Please review and run tests before merging.
           labels: automated, dependencies
