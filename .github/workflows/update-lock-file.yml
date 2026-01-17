@@ -38,13 +38,14 @@ jobs:
           git add uv.lock
           git commit -m "chore: update uv.lock"
           git push origin "$BRANCH"
-
+        env:
+          BRANCH: ${{ steps.set-output.outputs.BRANCH }}
       - name: Create PR
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: update uv.lock"
-          branch: "chore/update-lockfile-${{ github.run_id }}"
+          branch: ${{ env.BRANCH }}
           base: dev
           title: "chore: update uv.lock"
           body: "Automated lockfile update via `uv lock --upgrade`"
