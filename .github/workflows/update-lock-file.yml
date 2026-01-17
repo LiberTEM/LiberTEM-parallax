@@ -34,12 +34,13 @@ jobs:
           fi
           
           BRANCH="chore/update-lockfile-$(date +%Y%m%d)"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+                    
           git checkout -b "$BRANCH"
           git add uv.lock
           git commit -m "chore: update uv.lock"
           git push origin "$BRANCH"
-        env:
-          BRANCH: ${{ steps.set-output.outputs.BRANCH }}
+
       - name: Create PR
         uses: peter-evans/create-pull-request@v8
         with:
