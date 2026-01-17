@@ -218,8 +218,8 @@ def prepare_grouped_phase_flipping_kernel(kernel, shifts_m_upsampled, upsampled_
     s_my = np.repeat(shifts_m_upsampled[:, 0], L0)
     s_mx = np.repeat(shifts_m_upsampled[:, 1], L0)
 
-    # compute flattened offsets
-    offsets = (dy_rep + s_my) * Nx + (dx_rep + s_mx)
+    # compute flattened offsets (wrapped properly)
+    offsets = ((dy_rep + s_my) % Ny) * Nx + ((dx_rep + s_mx) % Nx)
 
     # find unique offsets and inverse indices
     unique_offsets, inv = np.unique(offsets, return_inverse=True)
