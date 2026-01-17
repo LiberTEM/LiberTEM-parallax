@@ -81,12 +81,11 @@ def spatial_frequencies(
 
     As a result:
 
-    - A **counter-clockwise rotation of the detector image by +θ**
-    (e.g. using ``ndimage.rotate``)
+    - A **counter-clockwise rotation of the detector image by +θ** (e.g. using ``ndimage.rotate``)
     - corresponds to a **clockwise rotation of the frequency coordinates by −θ**
 
     Therefore, when a detector image has been rotated CCW by an angle ``θ`` in
-    real space, the corresponding spatial-frequency grid must be rotated using
+    image space, the corresponding spatial-frequency grid must be rotated using
 
         rotation_angle = -θ
     """

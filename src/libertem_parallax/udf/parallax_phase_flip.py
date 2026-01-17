@@ -156,7 +156,8 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
         suppress_Nyquist_noise
             Whether to suppress Nyquist-frequency artifacts in the kernel.
         detector_flip_cols
-            True if last detector axis need to be flipped.
+            Controls detector ordering. See ``libertem_parallax.udf.base.BaseParallaxUDF.preprocess_geometry?``
+            https://github.com/LiberTEM/LiberTEM-parallax/blob/main/src/libertem_parallax/udf/base.py#L82
         """
 
         pre = cls.preprocess_geometry(
