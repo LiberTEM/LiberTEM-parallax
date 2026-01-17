@@ -1,0 +1,51 @@
+name: Check PR version
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  validate-version:
+    name: Validate PR version > main
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install project
+        run: uv sync --all-extras --locked
+
+      - name: Compare PR version to main
+        run: |
+          PR_VERSION=$(uv version --short)
+          echo "PR version: $PR_VERSION"
+
+          MAIN_VERSION=$(git show origin/main:pyproject.toml | grep '^version' | head -1 | awk -F '"' '{print $2}')
+          echo "Main version: $MAIN_VERSION"
+
+          IFS='.' read -r PR_MAJOR PR_MINOR PR_PATCH <<< "$PR_VERSION"
+          IFS='.' read -r MAIN_MAJOR MAIN_MINOR MAIN_PATCH <<< "$MAIN_VERSION"
+
+          if (( PR_MAJOR < MAIN_MAJOR )); then
+            echo "❌ PR major version is less than main"
+            exit 1
+          elif (( PR_MAJOR == MAIN_MAJOR )) && (( PR_MINOR < MAIN_MINOR )); then
+            echo "❌ PR minor version is less than main"
+            exit 1
+          elif (( PR_MAJOR == MAIN_MAJOR )) && (( PR_MINOR == MAIN_MINOR )) && (( PR_PATCH <= MAIN_PATCH )); then
+            echo "❌ PR patch version is not higher than main"
+            exit 1
+          fi
+
+          echo "✅ PR version ($PR_VERSION) is higher than main ($MAIN_VERSION)"
