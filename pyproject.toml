@@ -20,7 +20,7 @@ dependencies = [
 [dependency-groups]
 test = [
     "pytest>=9.0.2",
-    # "quantem>=0.1.7",
+    "quantem",
 ]
 
 dev = [
@@ -56,4 +56,7 @@ ignore = [
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.uv.sources]
+quantem = { git = "https://github.com/electronmicroscopy/quantem.git", branch = "diffractive_imaging" }
 
