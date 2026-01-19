@@ -5,6 +5,7 @@ import pytest
 from libertem.api import Context
 from libertem.executor.inline import InlineJobExecutor
 
+from libertem_parallax.udf.base import BaseParallaxUDF
 from libertem_parallax.udf.parallax import ParallaxUDF, parallax_accumulate_cpu
 from libertem_parallax.udf.parallax_phase_flip import parallax_phase_flip_accumulate_cpu
 
@@ -12,11 +13,11 @@ from libertem_parallax.udf.parallax_phase_flip import parallax_phase_flip_accumu
 class GeometryKwargs(TypedDict):
     shape: tuple[int, int, int, int]
     scan_sampling: tuple[float, float]
-    reciprocal_sampling: tuple[float, float]
+    reciprocal_sampling: tuple[float, float] | None
     energy: float
     semiangle_cutoff: float
     upsampling_factor: int
-    aberration_coefs: dict[str, float]
+    aberration_coefs: dict[str, float] | None
 
 
 SIMPLE_GEOMETRY_KWARGS: GeometryKwargs = {
@@ -33,7 +34,58 @@ SIMPLE_GEOMETRY_KWARGS: GeometryKwargs = {
 @pytest.fixture
 def simple_geometry():
     shape = SIMPLE_GEOMETRY_KWARGS["shape"]
-    return shape, ParallaxUDF.preprocess_geometry(**SIMPLE_GEOMETRY_KWARGS)
+    return shape, BaseParallaxUDF.preprocess_geometry(**SIMPLE_GEOMETRY_KWARGS)
+
+
+class TestPreprocessGeometryErrors:
+    def test_raises_if_both_samplings_given(self):
+        with pytest.raises(ValueError, match="Specify only one"):
+            kwargs = SIMPLE_GEOMETRY_KWARGS.copy()
+            BaseParallaxUDF.preprocess_geometry(**kwargs, angular_sampling=(1, 1))
+
+    def test_raises_if_no_sampling_given(self):
+        with pytest.raises(ValueError, match="must be specified"):
+            kwargs = SIMPLE_GEOMETRY_KWARGS.copy()
+            kwargs["reciprocal_sampling"] = None
+            BaseParallaxUDF.preprocess_geometry(
+                **kwargs,
+            )
+
+    def test_raises_if_shape_not_length_4(self):
+        with pytest.raises(ValueError, match="shape` must have length 4"):
+            kwargs = SIMPLE_GEOMETRY_KWARGS.copy()
+            kwargs["shape"] = (64, 64, 64)  # ty:ignore[invalid-assignment]
+            BaseParallaxUDF.preprocess_geometry(**kwargs)
+
+    def test_angular_sampling_is_canonicalized(self):
+        kwargs = SIMPLE_GEOMETRY_KWARGS.copy()
+        kwargs["reciprocal_sampling"] = None
+        angular_sampling = (2.0, 2.0)  # mrad
+
+        pre = BaseParallaxUDF.preprocess_geometry(
+            **kwargs, angular_sampling=angular_sampling
+        )
+
+        reciprocal_sampling = pre.reciprocal_sampling
+
+        expected = (
+            angular_sampling[0] / pre.wavelength / 1e3,
+            angular_sampling[1] / pre.wavelength / 1e3,
+        )
+
+        np.testing.assert_allclose(reciprocal_sampling, expected)
+
+    def test_aberrations_None(self):
+        kwargs = SIMPLE_GEOMETRY_KWARGS.copy()
+        kwargs["aberration_coefs"] = None
+        pre = BaseParallaxUDF.preprocess_geometry(**kwargs)
+
+        expected_shifts = np.zeros_like(pre.shifts)
+
+        np.testing.assert_allclose(
+            pre.shifts,
+            expected_shifts,
+        )
 
 
 class TestParallaxUDF:
