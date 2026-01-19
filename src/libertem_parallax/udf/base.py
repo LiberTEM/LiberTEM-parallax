@@ -19,8 +19,10 @@ class PreprocessedGeometry:
     shifts: np.ndarray
     wavelength: float
     gpts: tuple[int, int]
+    reciprocal_sampling: tuple[float, float]
+    sampling: tuple[float, float]
     upsampled_scan_gpts: tuple[int, int]
-    upsampled_sampling: tuple[float, float]
+    upsampled_scan_sampling: tuple[float, float]
     upsampling_factor: int
     aberration_coefs: dict[str, float]
 
@@ -155,7 +157,7 @@ class BaseParallaxUDF(UDF):
             scan_gpts[1] * upsampling_factor,
         )
 
-        upsampled_sampling = (
+        upsampled_scan_sampling = (
             scan_sampling[0] / upsampling_factor,
             scan_sampling[1] / upsampling_factor,
         )
@@ -190,15 +192,19 @@ class BaseParallaxUDF(UDF):
             axis=-1,
         )
 
-        shifts = np.round(grad_k / (2 * np.pi) / upsampled_sampling).astype(np.int32)
+        shifts = np.round(grad_k / (2 * np.pi) / upsampled_scan_sampling).astype(
+            np.int32
+        )
 
         return PreprocessedGeometry(
             bf_flat_inds=bf_flat_inds,
             shifts=shifts,
             wavelength=wavelength,
             gpts=gpts,
+            reciprocal_sampling=reciprocal_sampling,
+            sampling=sampling,
             upsampled_scan_gpts=upsampled_scan_gpts,
-            upsampled_sampling=upsampled_sampling,
+            upsampled_scan_sampling=upsampled_scan_sampling,
             upsampling_factor=upsampling_factor,
             aberration_coefs=aberration_coefs,
         )

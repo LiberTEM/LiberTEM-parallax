@@ -13,7 +13,7 @@ from . import ParallaxUDF
 from .base import BaseParallaxUDF
 
 
-@numba.njit(fastmath=True, nogil=True, cache=True)
+@numba.njit(fastmath=True, nogil=True, cache=True)  # pragma: no cover
 def parallax_phase_flip_accumulate_cpu(
     frames, bf_rows, bf_cols, coords, unique_offsets, grouped_kernel, out
 ):
@@ -175,11 +175,11 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
         shifts = pre.shifts
         wavelength = pre.wavelength
         upsampled_scan_gpts = pre.upsampled_scan_gpts
-        upsampled_sampling = pre.upsampled_sampling
+        upsampled_scan_sampling = pre.upsampled_scan_sampling
         aberration_coefs = pre.aberration_coefs
 
         # Phase-flip kernel
-        qxa, qya = spatial_frequencies(upsampled_scan_gpts, upsampled_sampling)
+        qxa, qya = spatial_frequencies(upsampled_scan_gpts, upsampled_scan_sampling)
         q, theta = polar_coordinates(qxa, qya)
         aberration_surface = quadratic_aberration_surface(
             q * wavelength,
@@ -224,14 +224,14 @@ class ParallaxPhaseFlipUDF(BaseParallaxUDF):
         pre = udf.preprocessed_geometry
 
         upsampled_scan_gpts: tuple[int, int] = pre.upsampled_scan_gpts
-        upsampled_sampling: tuple[float, float] = pre.upsampled_sampling
+        upsampled_scan_sampling: tuple[float, float] = pre.upsampled_scan_sampling
         wavelength = pre.wavelength
         aberration_coefs = pre.aberration_coefs
 
         # ---- Phase-flip kernel ----
         qxa, qya = spatial_frequencies(
             upsampled_scan_gpts,
-            upsampled_sampling,
+            upsampled_scan_sampling,
         )
         q, theta = polar_coordinates(qxa, qya)
 

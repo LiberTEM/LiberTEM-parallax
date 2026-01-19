@@ -3,6 +3,7 @@ import numpy as np
 from libertem_parallax.utils import (
     electron_wavelength,
     polar_coordinates,
+    prepare_grouped_phase_flipping_kernel,
     quadratic_aberration_cartesian_gradients,
     quadratic_aberration_surface,
     spatial_frequencies,
@@ -77,3 +78,34 @@ class TestUtils:
         Nx, Ny = fft_arr.shape
         assert np.allclose(fft_arr[Nx // 2, :], 0.0)
         assert np.allclose(fft_arr[:, Ny // 2], 0.0)
+
+    def test_kernel_weight_conservation(self):
+        kernel = np.ones((3, 3), dtype=np.float64)
+        shifts = np.array(
+            [
+                [0, 0],
+                [1, 0],
+                [0, 1],
+            ],
+            dtype=np.int64,
+        )
+        upsampled_gpts = (8, 8)
+
+        offsets, grouped = prepare_grouped_phase_flipping_kernel(
+            kernel,
+            shifts,
+            upsampled_gpts,
+        )
+
+        # Each BF pixel contributes sum(kernel)
+        expected = kernel.sum()
+
+        # Sum over spatial offsets → per BF pixel
+        summed = grouped.sum(axis=0)
+
+        np.testing.assert_allclose(
+            summed,
+            expected,
+            rtol=0,
+            atol=0,
+        )
