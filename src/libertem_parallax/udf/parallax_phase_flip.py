@@ -13,7 +13,7 @@ from . import ParallaxUDF
 from .base import BaseParallaxUDF
 
 
-@numba.njit(fastmath=True, nogil=True, cache=True)
+@numba.njit(fastmath=True, nogil=True, cache=True)  # pragma: no cover
 def parallax_phase_flip_accumulate_cpu(
     frames, bf_rows, bf_cols, coords, unique_offsets, grouped_kernel, out
 ):
