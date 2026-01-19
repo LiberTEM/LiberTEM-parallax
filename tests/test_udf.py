@@ -238,3 +238,57 @@ class TestParallaxUDF:
         )
         # Ensure output is non-zero and wraps
         assert np.any(out != 0.0)
+
+
+class TestParallaxUDFUpsampled:
+    def test_orientations_upsampling_factor_2(self):
+        kwargs = SIMPLE_GEOMETRY_KWARGS.copy()
+        kwargs["upsampling_factor"] = 2
+        shape = kwargs["shape"]
+        dataset = np.zeros(shape, dtype=np.float64)
+
+        bf_flat_idx = 36
+        iy = bf_flat_idx // shape[-1]
+        ix = bf_flat_idx % shape[-1]
+        dataset[0, 0, iy, ix] = 1.0
+
+        ctx = Context(executor=InlineJobExecutor())
+        ds = ctx.load("memory", data=dataset)
+
+        udf = ParallaxUDF.from_parameters(**kwargs)
+
+        result = ctx.run_udf(dataset=ds, udf=udf)
+        out_actual = result["reconstruction"].data  # ty:ignore[invalid-argument-type, not-subscriptable]
+
+        # Downsample by factor 2 (average pooling)
+        out_down = np.round(
+            out_actual.reshape(
+                out_actual.shape[0] // 2,
+                2,
+                out_actual.shape[1] // 2,
+                2,
+            ).sum(axis=(1, 3)),
+            decimals=12,
+        )
+
+        expected_result = (
+            np.array(
+                [
+                    [20, -1, -1, 0, 0, 0, -1, -1],
+                    [-1, -1, -1, 0, 0, 0, -1, -1],
+                    [-1, -1, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                    [-1, -1, 0, 0, 0, 0, 0, -1],
+                    [-1, -1, -1, 0, 0, 0, -1, -1],
+                ]
+            )
+            / 21
+        )
+
+        np.testing.assert_allclose(
+            out_down,
+            expected_result,
+            rtol=1e-12,
+            atol=0,
+        )
