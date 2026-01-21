@@ -143,8 +143,7 @@ class ParallaxUDF(BaseParallaxUDF):
         suppress_Nyquist_noise
             Whether to suppress Nyquist-frequency artifacts at merge time.
         detector_flip_cols
-            Controls detector ordering. See ``libertem_parallax.udf.base.BaseParallaxUDF._preprocess_geometry?``
-            https://github.com/LiberTEM/LiberTEM-parallax/blob/main/src/libertem_parallax/udf/base.py#L82
+            Controls detector ordering.
 
         Detector ordering conventions
         -----------------------------
