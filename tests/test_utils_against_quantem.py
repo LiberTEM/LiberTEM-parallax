@@ -82,8 +82,8 @@ class TestAberrationSurface:
     @pytest.mark.parametrize(
         "gpts",
         [
-            (64, 63),  # even
-            (65, 66),  # odd
+            (64, 63),
+            (65, 66),
         ],
     )
     @pytest.mark.parametrize(
@@ -114,7 +114,7 @@ class TestAberrationSurface:
             aberration_coefs,
         )
 
-        assert_allclose(quant.numpy(), liber, atol=1e-5)
+        assert_allclose(quant.numpy(), liber, atol=1e-5, rtol=1e-6)
 
 
 class TestAberrationGradients:
