@@ -48,20 +48,20 @@ DETECTOR_ORIENTATIONS = [
 @pytest.fixture
 def simple_geometry():
     shape = SIMPLE_GEOMETRY_KWARGS["shape"]
-    return shape, BaseParallaxUDF.preprocess_geometry(**SIMPLE_GEOMETRY_KWARGS)
+    return shape, BaseParallaxUDF._preprocess_geometry(**SIMPLE_GEOMETRY_KWARGS)
 
 
 class TestPreprocessGeometryErrors:
     def test_raises_if_both_samplings_given(self):
         with pytest.raises(ValueError, match="Specify only one"):
             kwargs = SIMPLE_GEOMETRY_KWARGS.copy()
-            BaseParallaxUDF.preprocess_geometry(**kwargs, angular_sampling=(1, 1))
+            BaseParallaxUDF._preprocess_geometry(**kwargs, angular_sampling=(1, 1))
 
     def test_raises_if_no_sampling_given(self):
         with pytest.raises(ValueError, match="must be specified"):
             kwargs = SIMPLE_GEOMETRY_KWARGS.copy()
             kwargs["reciprocal_sampling"] = None
-            BaseParallaxUDF.preprocess_geometry(
+            BaseParallaxUDF._preprocess_geometry(
                 **kwargs,
             )
 
@@ -69,14 +69,14 @@ class TestPreprocessGeometryErrors:
         with pytest.raises(ValueError, match="shape` must have length 4"):
             kwargs = SIMPLE_GEOMETRY_KWARGS.copy()
             kwargs["shape"] = (64, 64, 64)  # ty:ignore[invalid-assignment]
-            BaseParallaxUDF.preprocess_geometry(**kwargs)
+            BaseParallaxUDF._preprocess_geometry(**kwargs)
 
     def test_angular_sampling_is_canonicalized(self):
         kwargs = SIMPLE_GEOMETRY_KWARGS.copy()
         kwargs["reciprocal_sampling"] = None
         angular_sampling = (2.0, 2.0)  # mrad
 
-        pre = BaseParallaxUDF.preprocess_geometry(
+        pre = BaseParallaxUDF._preprocess_geometry(
             **kwargs, angular_sampling=angular_sampling
         )
 
@@ -92,7 +92,7 @@ class TestPreprocessGeometryErrors:
     def test_aberrations_None(self):
         kwargs = SIMPLE_GEOMETRY_KWARGS.copy()
         kwargs["aberration_coefs"] = None
-        pre = BaseParallaxUDF.preprocess_geometry(**kwargs)
+        pre = BaseParallaxUDF._preprocess_geometry(**kwargs)
 
         expected_shifts = np.zeros_like(pre.shifts)
 

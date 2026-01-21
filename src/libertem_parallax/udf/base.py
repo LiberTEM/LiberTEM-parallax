@@ -38,7 +38,7 @@ class BaseParallaxUDF(UDF):
     """
 
     @classmethod
-    def preprocess_geometry(
+    def _preprocess_geometry(
         cls,
         shape: tuple[int, int, int, int] | Shape,
         scan_sampling: tuple[float, float],
