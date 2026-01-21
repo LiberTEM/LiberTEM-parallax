@@ -176,13 +176,13 @@ class ParallaxUDF(BaseParallaxUDF):
         Notes
         -----
         - `detector_flip_cols=True` corresponds to `frames[..., ::-1]` and is always
-        applied as a view (no copy).
+          applied as a view (no copy).
         - Row flips are *not* applied directly; they are represented by a π rotation
-        combined with a column flip.
+          combined with a column flip.
         - This parameterization is sufficient to represent all transpose/flip
-        combinations without modifying the geometry code path.
+          combinations without modifying the geometry code path.
         - Continuous relative rotation between detector and scan coordinates should
-        be expressed via `rotation_angle` in addition to the adjustments above.
+          be expressed via `rotation_angle` in addition to the adjustments above.
         """
 
         pre = cls._preprocess_geometry(
