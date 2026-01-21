@@ -37,3 +37,6 @@ jobs:
 
       - name: Run pytests
         run: uv run pytest tests
+
+      - name: Run pytests without Numba JIT for coverage
+        run: NUMBA_DISABLE_JIT=1 uv run pytest tests

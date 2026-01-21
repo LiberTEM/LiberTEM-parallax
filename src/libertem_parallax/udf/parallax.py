@@ -9,7 +9,7 @@ from libertem_parallax.utils import (
 from .base import BaseParallaxUDF
 
 
-@numba.njit(fastmath=True, nogil=True, cache=True)  # pragma: no cover
+@numba.njit(fastmath=True, nogil=True, cache=True)
 def parallax_accumulate_cpu(
     frames,  # (T, sy, sx) float32/64
     bf_flat_inds,  # (M,) int32
