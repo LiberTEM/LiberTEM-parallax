@@ -116,7 +116,14 @@ class TestUtils:
         if Ny % 2 == 0:
             assert np.allclose(fft_arr[:, Ny // 2], 0.0)
 
-    def test_kernel_weight_conservation(self):
+    @pytest.mark.parametrize(
+        "upsampled_gpts",
+        [
+            (7, 8),
+            (8, 8),
+        ],
+    )
+    def test_kernel_weight_conservation(self, upsampled_gpts):
         kernel = np.ones((3, 3), dtype=np.float64)
         shifts = np.array(
             [
@@ -126,7 +133,6 @@ class TestUtils:
             ],
             dtype=np.int64,
         )
-        upsampled_gpts = (8, 8)
 
         offsets, grouped = prepare_grouped_phase_flipping_kernel(
             kernel,
