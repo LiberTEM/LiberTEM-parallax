@@ -49,6 +49,7 @@ class BaseParallaxUDF(UDF):
         aberration_coefs: dict[str, float] | None = None,
         rotation_angle: float | None = None,
         upsampling_factor: int = 1,
+        detector_flip_cols: bool = False,
     ):
         """
         Precomputes:
@@ -80,6 +81,8 @@ class BaseParallaxUDF(UDF):
             Optional rotation of reciprocal coordinates, in radians.
         upsampling_factor
             Integer upsampling factor for the scan grid.
+        detector_flip_cols
+            Controls detector ordering.
 
         Detector ordering conventions
         -----------------------------
@@ -171,6 +174,7 @@ class BaseParallaxUDF(UDF):
             sampling,
             rotation_angle=rotation_angle,
         )
+
         k, phi = polar_coordinates(kxa, kya)
 
         # ---- BF indices ----
@@ -179,6 +183,27 @@ class BaseParallaxUDF(UDF):
 
         inds_i_fft = (inds_i - gpts[0] // 2) % gpts[0]
         inds_j_fft = (inds_j - gpts[1] // 2) % gpts[1]
+
+        if rotation_angle is not None:
+            # FFT parity correction:
+            # For even-sized grids, fftshift centers the origin between pixels.
+            # Rotations by odd multiples of π/2 change which side of that half-pixel
+            # the rotated coordinates fall on, requiring a one-pixel correction.
+
+            n_rot = int(np.round(rotation_angle / (np.pi / 2))) % 4
+
+            if n_rot == 1:  # +π/2
+                if gpts[1] % 2 == 0:
+                    inds_j_fft = (inds_j_fft - 1) % gpts[1]
+            elif n_rot == 2:  # π
+                if gpts[0] % 2 == 0:
+                    inds_i_fft = (inds_i_fft - 1) % gpts[0]
+                if gpts[1] % 2 == 0:
+                    inds_j_fft = (inds_j_fft - 1) % gpts[1]
+            elif n_rot == 3:  # -π/2
+                if gpts[0] % 2 == 0:
+                    inds_i_fft = (inds_i_fft - 1) % gpts[0]
+
         bf_flat_inds = (inds_i_fft * gpts[1] + inds_j_fft).astype(np.int32)
 
         dx, dy = quadratic_aberration_cartesian_gradients(

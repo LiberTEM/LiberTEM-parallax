@@ -194,6 +194,7 @@ class ParallaxUDF(BaseParallaxUDF):
             aberration_coefs,
             rotation_angle,
             upsampling_factor,
+            detector_flip_cols,
         )
 
         return cls(

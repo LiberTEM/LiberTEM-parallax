@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from libertem_parallax.utils import (
     electron_wavelength,
@@ -19,18 +20,34 @@ class TestUtils:
         lam2 = electron_wavelength(300e3)
         assert lam2 < lam
 
-    def test_spatial_frequencies_no_rotation(self):
-        gpts = (5, 7)
+    @pytest.mark.parametrize(
+        "gpts",
+        [
+            (5, 5),
+            (5, 6),
+            (6, 6),
+            (6, 5),
+        ],
+    )
+    def test_spatial_frequencies_no_rotation(self, gpts):
         sampling = (1.0, 2.0)
         kx, ky = spatial_frequencies(gpts, sampling)
         assert kx.shape == gpts
         assert ky.shape == gpts
         # Corner-centered, zero freq near center of FFT grid
-        assert np.isclose(kx.mean(), 0.0)
-        assert np.isclose(ky.mean(), 0.0)
+        assert np.isclose(kx[0, 0], 0.0)
+        assert np.isclose(ky[0, 0], 0.0)
 
-    def test_spatial_frequencies_with_rotation(self):
-        gpts = (5, 5)
+    @pytest.mark.parametrize(
+        "gpts",
+        [
+            (5, 5),
+            (5, 6),
+            (6, 6),
+            (6, 5),
+        ],
+    )
+    def test_spatial_frequencies_with_rotation(self, gpts):
         sampling = (1.0, 1.0)
         theta = np.pi / 2
         kx, ky = spatial_frequencies(gpts, sampling, rotation_angle=theta)
@@ -50,8 +67,16 @@ class TestUtils:
         np.testing.assert_allclose(x, x2, atol=1e-12)
         np.testing.assert_allclose(y, y2, atol=1e-12)
 
-    def test_quadratic_aberration_surface_and_gradients(self):
-        gpts = (5, 5)
+    @pytest.mark.parametrize(
+        "gpts",
+        [
+            (5, 5),
+            (5, 6),
+            (6, 6),
+            (6, 5),
+        ],
+    )
+    def test_quadratic_aberration_surface_and_gradients(self, gpts):
         sampling = (1.0, 1.0)
         theta = np.pi / 2
 
@@ -68,16 +93,28 @@ class TestUtils:
         assert np.all(np.isfinite(dx))
         assert np.all(np.isfinite(dy))
 
-    def test_suppress_nyquist_frequency(self):
-        arr = np.random.rand(8, 8)
+    @pytest.mark.parametrize(
+        "gpts",
+        [
+            (5, 5),
+            (5, 6),
+            (6, 6),
+            (6, 5),
+        ],
+    )
+    def test_suppress_nyquist_frequency(self, gpts):
+        arr = np.random.rand(*gpts)
         arr_suppressed = suppress_nyquist_frequency(arr)
         # Output is real
         assert np.isrealobj(arr_suppressed)
+
         # Rough check: Nyquist freq zeroed
         fft_arr = np.fft.fft2(arr_suppressed)
         Nx, Ny = fft_arr.shape
-        assert np.allclose(fft_arr[Nx // 2, :], 0.0)
-        assert np.allclose(fft_arr[:, Ny // 2], 0.0)
+        if Nx % 2 == 0:
+            assert np.allclose(fft_arr[Nx // 2, :], 0.0)
+        if Ny % 2 == 0:
+            assert np.allclose(fft_arr[:, Ny // 2], 0.0)
 
     def test_kernel_weight_conservation(self):
         kernel = np.ones((3, 3), dtype=np.float64)
