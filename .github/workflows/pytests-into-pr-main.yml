@@ -37,3 +37,8 @@ jobs:
 
       - name: Run pytests
         run: uv run pytest tests
+
+      - name: Run pytests without Numba JIT for coverage
+        env:
+          NUMBA_DISABLE_JIT: "1"
+        run: uv run pytest tests/ --cov=libertem_parallax --cov-report=term-missing

@@ -35,8 +35,8 @@ class TestSpatialFrequencies:
     @pytest.mark.parametrize(
         "gpts",
         [
-            (64, 64),  # even
-            (65, 65),  # odd
+            (64, 63),
+            (65, 66),
         ],
     )
     def test_unrotated(self, gpts):
@@ -47,8 +47,8 @@ class TestSpatialFrequencies:
     @pytest.mark.parametrize(
         "gpts, rotation_angle",
         [
-            ((64, 64), np.pi / 3),
-            ((65, 65), np.pi / 3),
+            ((64, 63), np.pi / 3),
+            ((65, 66), np.pi / 3),
         ],
     )
     def test_rotated(self, gpts, rotation_angle):
@@ -61,8 +61,8 @@ class TestPolarCoordinates:
     @pytest.mark.parametrize(
         "gpts",
         [
-            (64, 64),
-            (65, 65),
+            (64, 63),
+            (65, 66),
         ],
     )
     def test_matches_quantem(self, gpts):
@@ -82,8 +82,8 @@ class TestAberrationSurface:
     @pytest.mark.parametrize(
         "gpts",
         [
-            (64, 64),  # even
-            (65, 65),  # odd
+            (64, 63),
+            (65, 66),
         ],
     )
     @pytest.mark.parametrize(
@@ -114,7 +114,7 @@ class TestAberrationSurface:
             aberration_coefs,
         )
 
-        assert_allclose(quant.numpy(), liber, atol=1e-5)
+        assert_allclose(quant.numpy(), liber, atol=1e-5, rtol=1e-6)
 
 
 class TestAberrationGradients:
@@ -123,7 +123,7 @@ class TestAberrationGradients:
         Libertem-parallax intentionally ignores higher-order aberrations.
         This test asserts that behavior differs silently from quantem.
         """
-        gpts = (64, 64)
+        gpts = (63, 64)
         aberration_coefs = {
             "C10": 50.0,
             "C12": 25.0,

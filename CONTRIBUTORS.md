@@ -24,6 +24,10 @@ Errors that cannot be auto-fixed  will be reported and must be resolved before c
 In many cases, formatting or auto-fixes will be applied automatically.
 You can stage these changes with `git add -u` and retry commiting.
 
+## Running the tests
+
+Run the unit tests with `uv run pytest tests/`.
+
 ## Dependency management
 
 - use `uv add package_name` to add dependencies

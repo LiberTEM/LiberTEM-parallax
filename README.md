@@ -31,15 +31,15 @@ import libertem.api
 import libertem_parallax as prlx
 import numpy as np
 
-ctx = libertem.api.Context(
-    executor=libertem.executor.inline.InlineJobExecutor()
-)
-ds = ctx.load("npy",path="../data/apoF_4mrad_1.5um-df_3A-step_30eA2_binary.npy")
+ctx = libertem.api.Context()
+
+# dataset available at https://doi.org/10.5281/zenodo.18346853
+ds = ctx.load("auto", path="../data/apoF_4mrad_1.5um-df_3A-step_30eA2_binary_uint8.npy")
 
 udf = prlx.ParallaxUDF.from_parameters(
-    shape = ds.shape,
-    scan_sampling = (256/72,256/72),
-    angular_sampling = (0.307617,0.307617),
+    shape=ds.shape,
+    scan_sampling=(256/72,256/72),
+    angular_sampling=(0.307617,0.307617),
     energy=300e3,
     semiangle_cutoff=4.0,
     aberration_coefs={"C10":-1.5e4},
@@ -51,7 +51,10 @@ udf_flip = prlx.ParallaxPhaseFlipUDF.from_parallax_udf(
     udf
 )
 
-result, result_flip = ctx.run_udf(dataset=ds, udf=[udf,udf_flip])
+result, result_flip = ctx.run_udf(
+    dataset=ds, udf=[udf, udf_flip],
+    progress=True, plots=True
+)
 ```
 
 ## Parallax imaging background
