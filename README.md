@@ -51,7 +51,10 @@ udf_flip = prlx.ParallaxPhaseFlipUDF.from_parallax_udf(
     udf
 )
 
-result, result_flip = ctx.run_udf(dataset=ds, udf=[udf, udf_flip])
+result, result_flip = ctx.run_udf(
+    dataset=ds, udf=[udf, udf_flip],
+    progress=True, plots=True
+)
 ```
 
 ## Parallax imaging background
