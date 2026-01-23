@@ -33,7 +33,8 @@ import numpy as np
 
 ctx = libertem.api.Context()
 
-ds = ctx.load("auto", path="../data/apoF_4mrad_1.5um-df_3A-step_30eA2_binary.npy")
+# dataset available at https://doi.org/10.5281/zenodo.18346853
+ds = ctx.load("auto", path="../data/apoF_4mrad_1.5um-df_3A-step_30eA2_binary_uint8.npy")
 
 udf = prlx.ParallaxUDF.from_parameters(
     shape=ds.shape,
