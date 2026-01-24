@@ -40,4 +40,19 @@ Run the unit tests with `uv run pytest tests/`.
 - use `uv run python`, `uv run jupyterlab` etc. to automatically activate the environment and run your command
 - alternatively use `source .venv/bin/activate` to explicitly activate environment and use `python`, `jupyterlab` etc. as usual
   - note that if you're using an IDE like VS Code, it probably activates the environment automatically
-  
+
+## Branch protection and usage
+
+The `dev` and `main` branches are protected and do not allow direct commits.
+
+All development must happen on feature branches (or forks of the repository).
+Contributions should be submitted as pull requests (PRs) targeting the `dev` branch.
+These PRs trigger the standard automated checks and, once approved, can be merged into `dev`.
+
+Releases are made by opening a PR from `dev` into `main`. 
+This PR runs additional checks, including verification that:
+- the `uv.lock` file is up to date,
+- expanded test coverage passes across supported operating systems, and
+- the version in `dev` is higher than the current version in `main`.
+
+Once these checks pass and the PR is merged, the release process is automated: the package is deployed to PyPI and a corresponding GitHub tag and release are created.
