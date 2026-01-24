@@ -143,11 +143,48 @@ class ParallaxUDF(BaseParallaxUDF):
         suppress_Nyquist_noise
             Whether to suppress Nyquist-frequency artifacts at merge time.
         detector_flip_cols
-            Controls detector ordering. See ``libertem_parallax.udf.base.BaseParallaxUDF.preprocess_geometry?``
-            https://github.com/LiberTEM/LiberTEM-parallax/blob/main/src/libertem_parallax/udf/base.py#L82
+            Controls detector ordering.
+
+        Detector ordering conventions
+        -----------------------------
+
+        Internally, all geometry is computed assuming a canonical detector ordering
+        (Q_rows, Q_cols). Differences in how detector data are stored on disk or
+        streamed (transposes and flips) are handled by a combination of:
+
+        - `rotation_angle` (applied in reciprocal-space geometry)
+        - `detector_flip_cols` (applied as a zero-copy view on the data)
+
+        No other data reordering is performed.
+
+        The table below lists how common detector orderings should be mapped to these
+        parameters. All rotations are applied by *adding* the indicated angle to
+        `rotation_angle`.
+
+        Raw detector layout                  rotation_angle adjustment   detector_flip_cols
+        -----------------------------------------------------------------------------------
+        (Q_rows, Q_cols)                     0                           False
+        (Q_rows, reversed Q_cols)            0                           True
+        (reversed Q_rows, Q_cols)            +π                          True
+        (reversed Q_rows, reversed Q_cols)   +π                          False
+        (Q_cols, Q_rows)                     +π/2                        True
+        (Q_cols, reversed Q_rows)            +π/2                        False
+        (reversed Q_cols, Q_rows)            −π/2                        False
+        (reversed Q_cols, reversed Q_rows)   −π/2                        True
+
+        Notes
+        -----
+        - `detector_flip_cols=True` corresponds to `frames[..., ::-1]` and is always
+          applied as a view (no copy).
+        - Row flips are *not* applied directly; they are represented by a π rotation
+          combined with a column flip.
+        - This parameterization is sufficient to represent all transpose/flip
+          combinations without modifying the geometry code path.
+        - Continuous relative rotation between detector and scan coordinates should
+          be expressed via `rotation_angle` in addition to the adjustments above.
         """
 
-        pre = cls.preprocess_geometry(
+        pre = cls._preprocess_geometry(
             shape,
             scan_sampling,
             energy,
@@ -157,6 +194,7 @@ class ParallaxUDF(BaseParallaxUDF):
             aberration_coefs,
             rotation_angle,
             upsampling_factor,
+            detector_flip_cols,
         )
 
         return cls(

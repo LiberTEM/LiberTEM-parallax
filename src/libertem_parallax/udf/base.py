@@ -19,8 +19,10 @@ class PreprocessedGeometry:
     shifts: np.ndarray
     wavelength: float
     gpts: tuple[int, int]
+    reciprocal_sampling: tuple[float, float]
+    sampling: tuple[float, float]
     upsampled_scan_gpts: tuple[int, int]
-    upsampled_sampling: tuple[float, float]
+    upsampled_scan_sampling: tuple[float, float]
     upsampling_factor: int
     aberration_coefs: dict[str, float]
 
@@ -36,7 +38,7 @@ class BaseParallaxUDF(UDF):
     """
 
     @classmethod
-    def preprocess_geometry(
+    def _preprocess_geometry(
         cls,
         shape: tuple[int, int, int, int] | Shape,
         scan_sampling: tuple[float, float],
@@ -47,6 +49,7 @@ class BaseParallaxUDF(UDF):
         aberration_coefs: dict[str, float] | None = None,
         rotation_angle: float | None = None,
         upsampling_factor: int = 1,
+        detector_flip_cols: bool = False,
     ):
         """
         Precomputes:
@@ -78,6 +81,8 @@ class BaseParallaxUDF(UDF):
             Optional rotation of reciprocal coordinates, in radians.
         upsampling_factor
             Integer upsampling factor for the scan grid.
+        detector_flip_cols
+            Controls detector ordering.
 
         Detector ordering conventions
         -----------------------------
@@ -155,7 +160,7 @@ class BaseParallaxUDF(UDF):
             scan_gpts[1] * upsampling_factor,
         )
 
-        upsampled_sampling = (
+        upsampled_scan_sampling = (
             scan_sampling[0] / upsampling_factor,
             scan_sampling[1] / upsampling_factor,
         )
@@ -169,6 +174,7 @@ class BaseParallaxUDF(UDF):
             sampling,
             rotation_angle=rotation_angle,
         )
+
         k, phi = polar_coordinates(kxa, kya)
 
         # ---- BF indices ----
@@ -177,6 +183,27 @@ class BaseParallaxUDF(UDF):
 
         inds_i_fft = (inds_i - gpts[0] // 2) % gpts[0]
         inds_j_fft = (inds_j - gpts[1] // 2) % gpts[1]
+
+        if rotation_angle is not None:
+            # FFT parity correction:
+            # For even-sized grids, fftshift centers the origin between pixels.
+            # Rotations by odd multiples of π/2 change which side of that half-pixel
+            # the rotated coordinates fall on, requiring a one-pixel correction.
+
+            n_rot = int(np.round(rotation_angle / (np.pi / 2))) % 4
+
+            if n_rot == 1:  # +π/2
+                if gpts[1] % 2 == 0:
+                    inds_j_fft = (inds_j_fft - 1) % gpts[1]
+            elif n_rot == 2:  # π
+                if gpts[0] % 2 == 0:
+                    inds_i_fft = (inds_i_fft - 1) % gpts[0]
+                if gpts[1] % 2 == 0:
+                    inds_j_fft = (inds_j_fft - 1) % gpts[1]
+            elif n_rot == 3:  # -π/2
+                if gpts[0] % 2 == 0:
+                    inds_i_fft = (inds_i_fft - 1) % gpts[0]
+
         bf_flat_inds = (inds_i_fft * gpts[1] + inds_j_fft).astype(np.int32)
 
         dx, dy = quadratic_aberration_cartesian_gradients(
@@ -190,15 +217,19 @@ class BaseParallaxUDF(UDF):
             axis=-1,
         )
 
-        shifts = np.round(grad_k / (2 * np.pi) / upsampled_sampling).astype(np.int32)
+        shifts = np.round(grad_k / (2 * np.pi) / upsampled_scan_sampling).astype(
+            np.int32
+        )
 
         return PreprocessedGeometry(
             bf_flat_inds=bf_flat_inds,
             shifts=shifts,
             wavelength=wavelength,
             gpts=gpts,
+            reciprocal_sampling=reciprocal_sampling,
+            sampling=sampling,
             upsampled_scan_gpts=upsampled_scan_gpts,
-            upsampled_sampling=upsampled_sampling,
+            upsampled_scan_sampling=upsampled_scan_sampling,
             upsampling_factor=upsampling_factor,
             aberration_coefs=aberration_coefs,
         )

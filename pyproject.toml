@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "libertem-parallax"
-version = "0.1.1"
+version = "0.1.2"
 description = "Parallax-based UDFs for LiberTEM"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -20,7 +20,8 @@ dependencies = [
 [dependency-groups]
 test = [
     "pytest>=9.0.2",
-    # "quantem>=0.1.7",
+    "pytest-cov>=7.0.0",
+    "quantem",
 ]
 
 dev = [
@@ -56,4 +57,7 @@ ignore = [
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.uv.sources]
+quantem = { git = "https://github.com/electronmicroscopy/quantem.git", branch = "diffractive_imaging" }
 

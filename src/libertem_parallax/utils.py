@@ -97,14 +97,13 @@ def spatial_frequencies(
     kxa, kya = np.meshgrid(kx, ky, indexing="ij")
 
     if rotation_angle is not None:
-        kxa_centered = kxa - kxa.mean()
-        kya_centered = kya - kya.mean()
-
         cos_theta = np.cos(rotation_angle)
         sin_theta = np.sin(rotation_angle)
-        kx_rot = cos_theta * kxa_centered - sin_theta * kya_centered
-        ky_rot = sin_theta * kxa_centered + cos_theta * kya_centered
-        kxa, kya = kx_rot + kxa.mean(), ky_rot + kya.mean()
+
+        kxa_new = cos_theta * kxa - sin_theta * kya
+        kya_new = sin_theta * kxa + cos_theta * kya
+
+        kxa, kya = kxa_new, kya_new
 
     return kxa, kya
 
@@ -176,8 +175,12 @@ def suppress_nyquist_frequency(array: NDArray):
     """
     fourier_array = np.fft.fft2(array)
     Nx, Ny = fourier_array.shape
-    fourier_array[Nx // 2, :] = 0.0
-    fourier_array[:, Ny // 2] = 0.0
+
+    if Nx % 2 == 0:
+        fourier_array[Nx // 2, :] = 0.0
+    if Ny % 2 == 0:
+        fourier_array[:, Ny // 2] = 0.0
+
     return np.fft.ifft2(fourier_array).real
 
 
